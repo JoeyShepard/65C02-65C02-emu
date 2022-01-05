@@ -152,7 +152,7 @@ OP_INFO = { 0:("BRK","",1),
             }
 
 OP_FULL_NAMES={}      
-with open("code-table.asm","wt") as f:
+with open("instructions.asm","wt") as f:
     f.write("\t;Instruction routines\n")
     for i in range(256):
         if i in OP_INFO:
@@ -174,7 +174,11 @@ with open("code-table.asm","wt") as f:
             f.write("\n")
         OP_FULL_NAMES[i]=op_full
     f.write("\n")
-    
+
+with open("jump-table.asm","wt") as f:
+
+    #Old format - Two aligned jump tables of 128 16-bit addresses each
+    """    
     f.write("\t;Jump table\n")
     f.write("\tALIGN 256\n")
     for i in range(256):
@@ -183,3 +187,14 @@ with open("code-table.asm","wt") as f:
         if i==128:
             f.write("\n\tJUMP_TABLE2:\n")
         f.write(f"\tFDB {OP_FULL_NAMES[i]}\n")
+        """
+    
+    #One 256 byte table for each half of 256 16-bit addresses
+    f.write("\t;Jump table\n")
+    f.write("\tJUMP_TABLE_LO:\n")
+    for i in range(256):
+        f.write(f"\tFCB lo({OP_FULL_NAMES[i]})\n")
+    f.write("\n");
+    f.write("\tJUMP_TABLE_HI:\n")
+    for i in range(256):
+        f.write(f"\tFCB hi({OP_FULL_NAMES[i]})\n")

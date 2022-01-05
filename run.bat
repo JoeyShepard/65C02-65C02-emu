@@ -9,12 +9,6 @@ echo Assembling...
 ..\..\..\AS\bin\asw main.asm -L -U -g -q -cpu 65C02 > asm.txt
 python "remove escape.py" asm.txt
 
-echo Assembling tests...
-cd "test code"
-call assemble.bat
-cd ..
-echo.
-
 echo Filtering listing...
 python "listing filter.py" main.lst filtered.lst
 REM listing filter ignores first three lines. adjust so works here too?

@@ -98,24 +98,24 @@ NEXT_MACRO	MACRO
 			;TYA							;2
 			;TAX							;2
 			
-			;Method 4 - 30 cycles
+			;Method 4 - 28 cycles
+			;LDA (emu_PC,X)			;6
+			;TAY					;2
+			;LDA JUMP_TABLE,Y		;4
+			;PHA					;3
+			;LDA JUMP_TABLE2,Y		;4
+			;PHA					;3
+			;RTS					;6
+			
+			;Method 5 - 30 cycles
 			LDA (emu_PC,X)			;6
 			TAY						;2
-			LDA JUMP_TABLE,Y		;4
+			LDA JUMP_TABLE_LO,Y		;4
 			STA emu_ptr,X			;4
-			LDA JUMP_TABLE2,Y		;4
+			LDA JUMP_TABLE_HI,Y		;4
 			STA emu_ptr+1,X			;4
 			JMP (emu_ptr,X)			;6
-			
-			;Method 5 - 28 cycles
-			LDA (emu_PC,X)			;6
-			TAY						;2
-			LDA JUMP_TABLE,Y		;4
-			PHA						;3
-			LDA JUMP_TABLE2,Y		;4
-			PHA						;3
-			RTS						;6
-			
+						
 			ENDM
 			
 ;Misc

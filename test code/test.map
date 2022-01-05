@@ -28,6 +28,6 @@ NESTMAX                               Int    100                       -1  0
 PACKING                               Int    0                         -1  0
 PADDING                               Int    1                         -1  0
 RELAXED                               Int    0                         -1  0
-TIME                                  String 1:27:48                   -1  0
+TIME                                  String 11:40:24                  -1  0
 TRUE                                  Int    1                         -1  0
 VERSION                               Int    142F                      -1  0
