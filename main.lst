@@ -1,0 +1,115 @@
+ AS V1.42 Beta [Bld 157] - Source File main.asm - Page 1 - 1/4/2022 22:33:39
+
+
+       1/       0 : =$FFE1              RAM_BANK2 = 	$FFE1		;0x4000-0x7FFF
+       2/       0 : =$FFE2              RAM_BANK3 = 	$FFE2		;0x8000-0xBFFF
+       3/       0 : =$4                 BANK_GFX_RAM1 = 4
+       4/       0 : =$5                 BANK_GFX_RAM2 = 5
+       5/       0 :                     
+       6/       0 : =$FFE7              DEBUG =			$FFE7
+       7/       0 : =$FFE8              DEBUG_HEX = 	$FFE8
+       8/       0 : =$FFE9              DEBUG_DEC = 	$FFE9
+       9/       0 : =$FFEA              DEBUG_DEC16 = 	$FFEA
+      10/       0 :                     
+      11/       0 : =$30                COLOR_BLUE = $30
+      12/       0 :                     
+      13/       0 : =$0                 ptr = 0
+      14/       0 : =$0                 ptr_lo = 0
+      15/       0 : =$1                 ptr_hi = 1
+      16/       0 :                     
+      17/    C000 :                     	ORG $C000
+      18/    C000 :                     	
+      19/    C000 : =foo                OP_NAME set "foo"
+      20/    C000 : =IX                 OP_MODE set "IX"
+      21/    C000 : =foo_IX             OP_FULL set "foo_IX"
+      22/    C000 :                     
+      23/    C000 : =bar                OP_NAME set "bar"
+      24/    C000 : =IY                 OP_MODE set "IY"
+      25/    C000 : =bar_IX             OP_FULL set "bar_IX"
+      26/    C000 :                     	
+      27/    C000 : AD 00 F8            	LDA example_prog
+      28/    C003 :                     	
+      29/    C003 :                     	;Fill screen with blue
+      30/    C003 : A9 04               	LDA #BANK_GFX_RAM1
+      31/    C005 : 8D E1 FF            	STA RAM_BANK2
+      32/    C008 : A9 05               	LDA #BANK_GFX_RAM2
+      33/    C00A : 8D E2 FF            	STA RAM_BANK3
+      34/    C00D :                     	
+      35/    C00D : A9 40               	LDA #$40
+      36/    C00F : 85 01               	STA ptr_hi
+      37/    C011 : A9 00               	LDA #0
+      38/    C013 : 85 00               	STA ptr_lo
+      39/    C015 :                     	
+      40/    C015 : A0 00               	LDY #0
+      41/    C017 :                     	loop1:
+      42/    C017 : A9 30               		LDA #COLOR_BLUE
+      43/    C019 :                     		loop2:
+      44/    C019 : 91 00               			STA (ptr),Y
+      45/    C01B : C8                  			INY
+      46/    C01C : D0 FB               			BNE loop2
+      47/    C01E : A5 01               			LDA ptr_hi
+      48/    C020 : 1A                  			INC
+      49/    C021 : 85 01               			STA ptr_hi
+      50/    C023 : C9 C0               			CMP #$C0
+      51/    C025 : D0 F0               			BNE loop1
+      52/    C027 :                     		
+      53/    C027 : 00                  	BRK
+      54/    C028 : 00                  	BRK
+      55/    C029 :                     	
+      56/    C029 : 4C 29 C0            	JMP *
+      57/    C02C :                     	
+      58/    F800 :                     	ORG $F800
+      59/    F800 :                     	example_prog:
+      60/    F800 :                     	
+ AS V1.42 Beta [Bld 157] - Source File main.asm - Page 2 - 1/4/2022 22:33:39
+
+
+ AS V1.42 Beta [Bld 157] - Source File main.asm - Page 3 - 1/4/2022 22:33:39
+
+
+  Symbol Table (* = unused):
+  --------------------------
+
+*ARCHITECTURE :  i386-unknown-win32 - |  BANK_GFX_RAM1 :                  4 - |
+ BANK_GFX_RAM2 :                  5 - | *BIGENDIAN :                      0 - |
+*BRANCHEXT :                      0 - | *CASESENSITIVE :                  1 - |
+ COLOR_BLUE :                    30 - | *CONSTPI :        3.141592653589793 - |
+*DATE :                    1/4/2022 - | *DEBUG :                       FFE7 - |
+*DEBUG_DEC :                   FFE9 - | *DEBUG_DEC16 :                 FFEA - |
+*DEBUG_HEX :                   FFE8 - | *FALSE :                          0 - |
+*FULLPMMU :                       1 - | *HAS64 :                          1 - |
+*HASDSP :                         0 - | *HASFPU :                         0 - |
+*HASPMMU :                        0 - | *INEXTMODE :                      0 - |
+*INLWORDMODE :                    0 - | *INMAXMODE :                      0 - |
+*INSRCMODE :                      0 - | *INSUPMODE :                      0 - |
+*LISTON :                         1 - | *MACEXP :                         7 - |
+*MOMCPU :                     65C02 - | *MOMCPUNAME :                 65C02 - |
+*NESTMAX :                      100 - | *OP_FULL :                   bar_IX - |
+*OP_MODE :                       IY - | *OP_NAME :                      bar - |
+*PACKING :                        0 - | *PADDING :                        1 - |
+ RAM_BANK2 :                   FFE1 - |  RAM_BANK3 :                   FFE2 - |
+*RELAXED :                        0 - | *TIME :                    22:33:38 - |
+*TRUE :                           1 - | *VERSION :                     142F - |
+ example_prog :                F800 C |  loop1 :                       C017 C |
+ loop2 :                       C019 C |  ptr :                            0 - |
+ ptr_hi :                         1 - |  ptr_lo :                         0 - |
+
+     46 symbols
+     35 unused symbols
+
+ AS V1.42 Beta [Bld 157] - Source File main.asm - Page 4 - 1/4/2022 22:33:39
+
+
+  Code Pages:
+  ----------
+
+STANDARD (0 changed characters)
+
+1 code page
+
+0.04 seconds assembly time
+
+     60 lines source file
+      2 passes
+      0 errors
+      0 warnings

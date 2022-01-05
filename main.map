@@ -1,0 +1,57 @@
+Segment CODE
+File G:\My Drive\electronics\6502\AS\projects\6502 emu\main.asm
+   27:0000C000    30:0000C003    31:0000C005    32:0000C008    33:0000C00A 
+   35:0000C00D    36:0000C00F    37:0000C011    38:0000C013    40:0000C015 
+   42:0000C017    44:0000C019    45:0000C01B    46:0000C01C    47:0000C01E 
+   48:0000C020    49:0000C021    50:0000C023    51:0000C025    53:0000C027 
+   54:0000C028    56:0000C029 
+
+Symbols in Segment NOTHING
+ARCHITECTURE                          String i386-unknown-win32        -1  0
+BANK_GFX_RAM1                         Int    4                         -1  1
+BANK_GFX_RAM2                         Int    5                         -1  1
+BIGENDIAN                             Int    0                         -1  0
+BRANCHEXT                             Int    0                         -1  0
+CASESENSITIVE                         Int    1                         -1  0
+COLOR_BLUE                            Int    30                        -1  1
+CONSTPI                               Float  3.141592653589793         -1  0
+DATE                                  String 1/4/2022                  -1  0
+DEBUG                                 Int    FFE7                      -1  0
+DEBUG_DEC                             Int    FFE9                      -1  0
+DEBUG_DEC16                           Int    FFEA                      -1  0
+DEBUG_HEX                             Int    FFE8                      -1  0
+FALSE                                 Int    0                         -1  0
+FULLPMMU                              Int    1                         -1  0
+HAS64                                 Int    1                         -1  0
+HASDSP                                Int    0                         -1  0
+HASFPU                                Int    0                         -1  0
+HASPMMU                               Int    0                         -1  0
+INEXTMODE                             Int    0                         -1  0
+INLWORDMODE                           Int    0                         -1  0
+INMAXMODE                             Int    0                         -1  0
+INSRCMODE                             Int    0                         -1  0
+INSUPMODE                             Int    0                         -1  0
+LISTON                                Int    1                         -1  0
+MACEXP                                Int    7                         -1  0
+MOMCPU                                Int    65C02                     -1  0
+MOMCPUNAME                            String 65C02                     -1  0
+NESTMAX                               Int    100                       -1  0
+OP_FULL                               String bar_IX                    -1  0
+OP_MODE                               String IY                        -1  0
+OP_NAME                               String bar                       -1  0
+PACKING                               Int    0                         -1  0
+PADDING                               Int    1                         -1  0
+RAM_BANK2                             Int    FFE1                      -1  1
+RAM_BANK3                             Int    FFE2                      -1  1
+RELAXED                               Int    0                         -1  0
+TIME                                  String 22:33:38                  -1  0
+TRUE                                  Int    1                         -1  0
+VERSION                               Int    142F                      -1  0
+ptr                                   Int    0                         -1  1
+ptr_hi                                Int    1                         -1  1
+ptr_lo                                Int    0                         -1  1
+
+Symbols in Segment CODE
+example_prog                          Int    F800                      -1  1
+loop1                                 Int    C017                      -1  1
+loop2                                 Int    C019                      -1  1

@@ -1,0 +1,24 @@
+      27/    C000 : AD 00 F8            	LDA example_prog
+      30/    C003 : A9 04               	LDA #BANK_GFX_RAM1
+      31/    C005 : 8D E1 FF            	STA RAM_BANK2
+      32/    C008 : A9 05               	LDA #BANK_GFX_RAM2
+      33/    C00A : 8D E2 FF            	STA RAM_BANK3
+      35/    C00D : A9 40               	LDA #$40
+      36/    C00F : 85 01               	STA ptr_hi
+      37/    C011 : A9 00               	LDA #0
+      38/    C013 : 85 00               	STA ptr_lo
+      40/    C015 : A0 00               	LDY #0
+      41/    C017 :                     	loop1:
+      42/    C017 : A9 30               		LDA #COLOR_BLUE
+      43/    C019 :                     		loop2:
+      44/    C019 : 91 00               			STA (ptr),Y
+      45/    C01B : C8                  			INY
+      46/    C01C : D0 FB               			BNE loop2
+      47/    C01E : A5 01               			LDA ptr_hi
+      48/    C020 : 1A                  			INC
+      49/    C021 : 85 01               			STA ptr_hi
+      50/    C023 : C9 C0               			CMP #$C0
+      51/    C025 : D0 F0               			BNE loop1
+      53/    C027 : 00                  	BRK
+      54/    C028 : 00                  	BRK
+      56/    C029 : 4C 29 C0            	JMP *

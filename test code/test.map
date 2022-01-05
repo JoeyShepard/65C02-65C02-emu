@@ -1,0 +1,33 @@
+Segment CODE
+File G:\My Drive\electronics\6502\AS\projects\6502 emu\test code\test.asm
+    4:0000F800     5:0000F802     6:0000F804 
+
+Symbols in Segment NOTHING
+ARCHITECTURE                          String i386-unknown-win32        -1  0
+BIGENDIAN                             Int    0                         -1  0
+BRANCHEXT                             Int    0                         -1  0
+CASESENSITIVE                         Int    1                         -1  0
+CONSTPI                               Float  3.141592653589793         -1  0
+DATE                                  String 1/4/2022                  -1  0
+FALSE                                 Int    0                         -1  0
+FULLPMMU                              Int    1                         -1  0
+HAS64                                 Int    1                         -1  0
+HASDSP                                Int    0                         -1  0
+HASFPU                                Int    0                         -1  0
+HASPMMU                               Int    0                         -1  0
+INEXTMODE                             Int    0                         -1  0
+INLWORDMODE                           Int    0                         -1  0
+INMAXMODE                             Int    0                         -1  0
+INSRCMODE                             Int    0                         -1  0
+INSUPMODE                             Int    0                         -1  0
+LISTON                                Int    1                         -1  0
+MACEXP                                Int    7                         -1  0
+MOMCPU                                Int    65C02                     -1  0
+MOMCPUNAME                            String 65C02                     -1  0
+NESTMAX                               Int    100                       -1  0
+PACKING                               Int    0                         -1  0
+PADDING                               Int    1                         -1  0
+RELAXED                               Int    0                         -1  0
+TIME                                  String 22:33:39                  -1  0
+TRUE                                  Int    1                         -1  0
+VERSION                               Int    142F                      -1  0
