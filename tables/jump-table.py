@@ -162,21 +162,24 @@ with open("code-table.asm","wt") as f:
             op_full=op_name+"_"+op_mode
             f.write(f"\t;0x{hex(i)[2:].upper()} - {op_name} {op_mode}\n")
             f.write(f"\t{op_full}:\n")
-            f.write(f'\tOP_MACRO {i}, "{op_name}", "{op_mode}", "{op_full}"\n')
-            f.write(f"\t;code goes here\n")
-            f.write(f"\tNEXT_MACRO\n")
+            f.write(f'\t\tOP_MACRO {i}, "{op_name}", "{op_mode}", "{op_full}"\n')
+            f.write(f"\t\tNEXT_MACRO\n")
             f.write("\n")
         else:
             op_full="NOP_0x"+hex(i)[2:].upper()
             f.write(f"\t;0x{hex(i)[2:].upper()} - NOP\n")
             f.write(f"\t{op_full}:\n")
-            f.write(f'\tOP_MACRO {i}, "NOP", "IMP", "{op_full}"\n')
-            f.write(f"\tNEXT_MACRO\n")
+            f.write(f'\t\tOP_MACRO {i}, "NOP", "IMP", "{op_full}"\n')
+            f.write(f"\t\tNEXT_MACRO\n")
             f.write("\n")
         OP_FULL_NAMES[i]=op_full
     f.write("\n")
     
     f.write("\t;Jump table\n")
-    f.write("\tJUMP_TABLE:\n")
+    f.write("\tALIGN 256\n")
     for i in range(256):
+        if i==0:
+            f.write("\tJUMP_TABLE:\n")
+        if i==128:
+            f.write("\n\tJUMP_TABLE2:\n")
         f.write(f"\tFDB {OP_FULL_NAMES[i]}\n")

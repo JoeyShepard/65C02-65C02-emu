@@ -1,3 +1,16 @@
+	;TODO
+	;-All operations same size to eliminate second jump in dispatch?
+	;-Split SP btw data SP and SP
+	; - more SP than data SP - 16 or so
+	;-Recalc dispatch - cycles times don't matter!
+	;-Load code into RAM and recode! fair as long as done by 6502
+	; - actually, no way to tell from binary without listing :/
+	; - so JIT but that's probably slower. also huge amount of memory :/
+
+	;Included files
+	include macros.asm
+
+	;JavaScript emulator constants
 RAM_BANK2 = 	$FFE1		;0x4000-0x7FFF
 RAM_BANK3 = 	$FFE2		;0x8000-0xBFFF
 BANK_GFX_RAM1 = 4
@@ -8,1452 +21,1368 @@ DEBUG_HEX = 	$FFE8
 DEBUG_DEC = 	$FFE9
 DEBUG_DEC16 = 	$FFEA
 
-	;Zero page variables
-emu_level = 0
+	;65C02 emulator constants
+MAX_EMU_LEVEL = 5
 
+	;Zero page variables - shared between emu levels
+	ZP_START 240
+		ZP global_emu_level
+	ZP_END
+	
+	;Locals - each emu level gets a copy
+	LOCALS_START 0
+		LOCAL emu_level
+		LOCAL emu_data_SP
+		LOCAL emu_PC
+		LOCAL emu_PC_hi
+		LOCAL emu_SP
+		LOCAL emu_A
+		LOCAL emu_X
+		LOCAL emu_Y
+		LOCAL emu_D_flag
+		LOCAL emu_mem
+		LOCAL emu_ptr
+		LOCAL emu_ptr_hi
+		LOCAL emu_ptr2
+		LOCAL emu_ptr2_hi
+	LOCALS_END
+		
 	ORG $C000
 	;Setup before any emulator level loads
-	LDA example_prog
+	STZ global_emu_level
 	
-	BRK
-	BRK
+	;Setup for each emulator level
+	emu_begin:
+			
+		;Calculate local emu level
+		LDA global_emu_level
+		CMP #MAX_EMU_LEVEL
+		BNE .level_good
+			JMP ExitEmu
+		.level_good:
+		INC global_emu_level
+		
+		;Calculate SP and ZP data stack pointer
+		TAY
+		TAX
+		LDA #0
+		CLC
+		.loop:
+			ADC #locals_size
+			DEX
+			BNE .loop
+		TAX
+		STA emu_data_SP,X
+		STA emu_SP,X
+		TYA
+		STA emu_level,X
+		
+		;Clear emulated D flag
+		STZ emu_D_flag,X
+		
+		;Load emulated PC
+		LDA #lo(example_prog)
+		STA emu_PC,X
+		LDA #hi(example_prog)
+		STA emu_PC+1,X
 	
-	JMP *
+		;Start emulating - should never return from this
+		NEXT_MACRO
+		
+		halt
+		JMP *
+
+	;Deepest emulation layer reached - stop nesting
+	ExitEmu:
+		halt
+		JMP *
 	
-	;Instruction routines
+	
+		;Instruction routines
 	;0x0 - BRK IMP
 	BRK_IMP:
-	OP_MACRO 0, "BRK", "IMP", "BRK_IMP"
-	;code goes here
-	NEXT_MACRO
+		OP_MACRO 0, "BRK", "IMP", "BRK_IMP"
+		NEXT_MACRO
 
 	;0x1 - ORA IX
 	ORA_IX:
-	OP_MACRO 1, "ORA", "IX", "ORA_IX"
-	;code goes here
-	NEXT_MACRO
+		OP_MACRO 1, "ORA", "IX", "ORA_IX"
+		NEXT_MACRO
 
 	;0x2 - NOP
 	NOP_0x2:
-	OP_MACRO 2, "NOP", "IMP", "NOP_0x2"
-	NEXT_MACRO
+		OP_MACRO 2, "NOP", "IMP", "NOP_0x2"
+		NEXT_MACRO
 
 	;0x3 - NOP
 	NOP_0x3:
-	OP_MACRO 3, "NOP", "IMP", "NOP_0x3"
-	NEXT_MACRO
+		OP_MACRO 3, "NOP", "IMP", "NOP_0x3"
+		NEXT_MACRO
 
 	;0x4 - NOP
 	NOP_0x4:
-	OP_MACRO 4, "NOP", "IMP", "NOP_0x4"
-	NEXT_MACRO
+		OP_MACRO 4, "NOP", "IMP", "NOP_0x4"
+		NEXT_MACRO
 
 	;0x5 - ORA ZP
 	ORA_ZP:
-	OP_MACRO 5, "ORA", "ZP", "ORA_ZP"
-	;code goes here
-	NEXT_MACRO
+		OP_MACRO 5, "ORA", "ZP", "ORA_ZP"
+		NEXT_MACRO
 
 	;0x6 - ASL ZP
 	ASL_ZP:
-	OP_MACRO 6, "ASL", "ZP", "ASL_ZP"
-	;code goes here
-	NEXT_MACRO
+		OP_MACRO 6, "ASL", "ZP", "ASL_ZP"
+		NEXT_MACRO
 
 	;0x7 - NOP
 	NOP_0x7:
-	OP_MACRO 7, "NOP", "IMP", "NOP_0x7"
-	NEXT_MACRO
+		OP_MACRO 7, "NOP", "IMP", "NOP_0x7"
+		NEXT_MACRO
 
 	;0x8 - PHP IMP
 	PHP_IMP:
-	OP_MACRO 8, "PHP", "IMP", "PHP_IMP"
-	;code goes here
-	NEXT_MACRO
+		OP_MACRO 8, "PHP", "IMP", "PHP_IMP"
+		NEXT_MACRO
 
 	;0x9 - ORA IMMED
 	ORA_IMMED:
-	OP_MACRO 9, "ORA", "IMMED", "ORA_IMMED"
-	;code goes here
-	NEXT_MACRO
+		OP_MACRO 9, "ORA", "IMMED", "ORA_IMMED"
+		NEXT_MACRO
 
 	;0xA - ASL A
 	ASL_A:
-	OP_MACRO 10, "ASL", "A", "ASL_A"
-	;code goes here
-	NEXT_MACRO
+		OP_MACRO 10, "ASL", "A", "ASL_A"
+		NEXT_MACRO
 
 	;0xB - NOP
 	NOP_0xB:
-	OP_MACRO 11, "NOP", "IMP", "NOP_0xB"
-	NEXT_MACRO
+		OP_MACRO 11, "NOP", "IMP", "NOP_0xB"
+		NEXT_MACRO
 
 	;0xC - NOP
 	NOP_0xC:
-	OP_MACRO 12, "NOP", "IMP", "NOP_0xC"
-	NEXT_MACRO
+		OP_MACRO 12, "NOP", "IMP", "NOP_0xC"
+		NEXT_MACRO
 
 	;0xD - ORA ABS
 	ORA_ABS:
-	OP_MACRO 13, "ORA", "ABS", "ORA_ABS"
-	;code goes here
-	NEXT_MACRO
+		OP_MACRO 13, "ORA", "ABS", "ORA_ABS"
+		NEXT_MACRO
 
 	;0xE - ASL ABS
 	ASL_ABS:
-	OP_MACRO 14, "ASL", "ABS", "ASL_ABS"
-	;code goes here
-	NEXT_MACRO
+		OP_MACRO 14, "ASL", "ABS", "ASL_ABS"
+		NEXT_MACRO
 
 	;0xF - NOP
 	NOP_0xF:
-	OP_MACRO 15, "NOP", "IMP", "NOP_0xF"
-	NEXT_MACRO
+		OP_MACRO 15, "NOP", "IMP", "NOP_0xF"
+		NEXT_MACRO
 
 	;0x10 - BPL REL
 	BPL_REL:
-	OP_MACRO 16, "BPL", "REL", "BPL_REL"
-	;code goes here
-	NEXT_MACRO
+		OP_MACRO 16, "BPL", "REL", "BPL_REL"
+		NEXT_MACRO
 
 	;0x11 - ORA IY
 	ORA_IY:
-	OP_MACRO 17, "ORA", "IY", "ORA_IY"
-	;code goes here
-	NEXT_MACRO
+		OP_MACRO 17, "ORA", "IY", "ORA_IY"
+		NEXT_MACRO
 
 	;0x12 - NOP
 	NOP_0x12:
-	OP_MACRO 18, "NOP", "IMP", "NOP_0x12"
-	NEXT_MACRO
+		OP_MACRO 18, "NOP", "IMP", "NOP_0x12"
+		NEXT_MACRO
 
 	;0x13 - NOP
 	NOP_0x13:
-	OP_MACRO 19, "NOP", "IMP", "NOP_0x13"
-	NEXT_MACRO
+		OP_MACRO 19, "NOP", "IMP", "NOP_0x13"
+		NEXT_MACRO
 
 	;0x14 - NOP
 	NOP_0x14:
-	OP_MACRO 20, "NOP", "IMP", "NOP_0x14"
-	NEXT_MACRO
+		OP_MACRO 20, "NOP", "IMP", "NOP_0x14"
+		NEXT_MACRO
 
 	;0x15 - ORA ZPX
 	ORA_ZPX:
-	OP_MACRO 21, "ORA", "ZPX", "ORA_ZPX"
-	;code goes here
-	NEXT_MACRO
+		OP_MACRO 21, "ORA", "ZPX", "ORA_ZPX"
+		NEXT_MACRO
 
 	;0x16 - ASL ZPX
 	ASL_ZPX:
-	OP_MACRO 22, "ASL", "ZPX", "ASL_ZPX"
-	;code goes here
-	NEXT_MACRO
+		OP_MACRO 22, "ASL", "ZPX", "ASL_ZPX"
+		NEXT_MACRO
 
 	;0x17 - NOP
 	NOP_0x17:
-	OP_MACRO 23, "NOP", "IMP", "NOP_0x17"
-	NEXT_MACRO
+		OP_MACRO 23, "NOP", "IMP", "NOP_0x17"
+		NEXT_MACRO
 
 	;0x18 - CLC IMP
 	CLC_IMP:
-	OP_MACRO 24, "CLC", "IMP", "CLC_IMP"
-	;code goes here
-	NEXT_MACRO
+		OP_MACRO 24, "CLC", "IMP", "CLC_IMP"
+		NEXT_MACRO
 
 	;0x19 - ORA ABSY
 	ORA_ABSY:
-	OP_MACRO 25, "ORA", "ABSY", "ORA_ABSY"
-	;code goes here
-	NEXT_MACRO
+		OP_MACRO 25, "ORA", "ABSY", "ORA_ABSY"
+		NEXT_MACRO
 
 	;0x1A - NOP
 	NOP_0x1A:
-	OP_MACRO 26, "NOP", "IMP", "NOP_0x1A"
-	NEXT_MACRO
+		OP_MACRO 26, "NOP", "IMP", "NOP_0x1A"
+		NEXT_MACRO
 
 	;0x1B - NOP
 	NOP_0x1B:
-	OP_MACRO 27, "NOP", "IMP", "NOP_0x1B"
-	NEXT_MACRO
+		OP_MACRO 27, "NOP", "IMP", "NOP_0x1B"
+		NEXT_MACRO
 
 	;0x1C - NOP
 	NOP_0x1C:
-	OP_MACRO 28, "NOP", "IMP", "NOP_0x1C"
-	NEXT_MACRO
+		OP_MACRO 28, "NOP", "IMP", "NOP_0x1C"
+		NEXT_MACRO
 
 	;0x1D - ORA ABSX
 	ORA_ABSX:
-	OP_MACRO 29, "ORA", "ABSX", "ORA_ABSX"
-	;code goes here
-	NEXT_MACRO
+		OP_MACRO 29, "ORA", "ABSX", "ORA_ABSX"
+		NEXT_MACRO
 
 	;0x1E - ASL ABSX
 	ASL_ABSX:
-	OP_MACRO 30, "ASL", "ABSX", "ASL_ABSX"
-	;code goes here
-	NEXT_MACRO
+		OP_MACRO 30, "ASL", "ABSX", "ASL_ABSX"
+		NEXT_MACRO
 
 	;0x1F - NOP
 	NOP_0x1F:
-	OP_MACRO 31, "NOP", "IMP", "NOP_0x1F"
-	NEXT_MACRO
+		OP_MACRO 31, "NOP", "IMP", "NOP_0x1F"
+		NEXT_MACRO
 
 	;0x20 - JSR ABS
 	JSR_ABS:
-	OP_MACRO 32, "JSR", "ABS", "JSR_ABS"
-	;code goes here
-	NEXT_MACRO
+		OP_MACRO 32, "JSR", "ABS", "JSR_ABS"
+		NEXT_MACRO
 
 	;0x21 - AND IX
 	AND_IX:
-	OP_MACRO 33, "AND", "IX", "AND_IX"
-	;code goes here
-	NEXT_MACRO
+		OP_MACRO 33, "AND", "IX", "AND_IX"
+		NEXT_MACRO
 
 	;0x22 - NOP
 	NOP_0x22:
-	OP_MACRO 34, "NOP", "IMP", "NOP_0x22"
-	NEXT_MACRO
+		OP_MACRO 34, "NOP", "IMP", "NOP_0x22"
+		NEXT_MACRO
 
 	;0x23 - NOP
 	NOP_0x23:
-	OP_MACRO 35, "NOP", "IMP", "NOP_0x23"
-	NEXT_MACRO
+		OP_MACRO 35, "NOP", "IMP", "NOP_0x23"
+		NEXT_MACRO
 
 	;0x24 - BIT ZP
 	BIT_ZP:
-	OP_MACRO 36, "BIT", "ZP", "BIT_ZP"
-	;code goes here
-	NEXT_MACRO
+		OP_MACRO 36, "BIT", "ZP", "BIT_ZP"
+		NEXT_MACRO
 
 	;0x25 - AND ZP
 	AND_ZP:
-	OP_MACRO 37, "AND", "ZP", "AND_ZP"
-	;code goes here
-	NEXT_MACRO
+		OP_MACRO 37, "AND", "ZP", "AND_ZP"
+		NEXT_MACRO
 
 	;0x26 - ROL ZP
 	ROL_ZP:
-	OP_MACRO 38, "ROL", "ZP", "ROL_ZP"
-	;code goes here
-	NEXT_MACRO
+		OP_MACRO 38, "ROL", "ZP", "ROL_ZP"
+		NEXT_MACRO
 
 	;0x27 - NOP
 	NOP_0x27:
-	OP_MACRO 39, "NOP", "IMP", "NOP_0x27"
-	NEXT_MACRO
+		OP_MACRO 39, "NOP", "IMP", "NOP_0x27"
+		NEXT_MACRO
 
 	;0x28 - PLP IMP
 	PLP_IMP:
-	OP_MACRO 40, "PLP", "IMP", "PLP_IMP"
-	;code goes here
-	NEXT_MACRO
+		OP_MACRO 40, "PLP", "IMP", "PLP_IMP"
+		NEXT_MACRO
 
 	;0x29 - AND IMMED
 	AND_IMMED:
-	OP_MACRO 41, "AND", "IMMED", "AND_IMMED"
-	;code goes here
-	NEXT_MACRO
+		OP_MACRO 41, "AND", "IMMED", "AND_IMMED"
+		NEXT_MACRO
 
 	;0x2A - ROL A
 	ROL_A:
-	OP_MACRO 42, "ROL", "A", "ROL_A"
-	;code goes here
-	NEXT_MACRO
+		OP_MACRO 42, "ROL", "A", "ROL_A"
+		NEXT_MACRO
 
 	;0x2B - NOP
 	NOP_0x2B:
-	OP_MACRO 43, "NOP", "IMP", "NOP_0x2B"
-	NEXT_MACRO
+		OP_MACRO 43, "NOP", "IMP", "NOP_0x2B"
+		NEXT_MACRO
 
 	;0x2C - BIT ABS
 	BIT_ABS:
-	OP_MACRO 44, "BIT", "ABS", "BIT_ABS"
-	;code goes here
-	NEXT_MACRO
+		OP_MACRO 44, "BIT", "ABS", "BIT_ABS"
+		NEXT_MACRO
 
 	;0x2D - AND ABS
 	AND_ABS:
-	OP_MACRO 45, "AND", "ABS", "AND_ABS"
-	;code goes here
-	NEXT_MACRO
+		OP_MACRO 45, "AND", "ABS", "AND_ABS"
+		NEXT_MACRO
 
 	;0x2E - ROL ABS
 	ROL_ABS:
-	OP_MACRO 46, "ROL", "ABS", "ROL_ABS"
-	;code goes here
-	NEXT_MACRO
+		OP_MACRO 46, "ROL", "ABS", "ROL_ABS"
+		NEXT_MACRO
 
 	;0x2F - NOP
 	NOP_0x2F:
-	OP_MACRO 47, "NOP", "IMP", "NOP_0x2F"
-	NEXT_MACRO
+		OP_MACRO 47, "NOP", "IMP", "NOP_0x2F"
+		NEXT_MACRO
 
 	;0x30 - BMI REL
 	BMI_REL:
-	OP_MACRO 48, "BMI", "REL", "BMI_REL"
-	;code goes here
-	NEXT_MACRO
+		OP_MACRO 48, "BMI", "REL", "BMI_REL"
+		NEXT_MACRO
 
 	;0x31 - AND IY
 	AND_IY:
-	OP_MACRO 49, "AND", "IY", "AND_IY"
-	;code goes here
-	NEXT_MACRO
+		OP_MACRO 49, "AND", "IY", "AND_IY"
+		NEXT_MACRO
 
 	;0x32 - NOP
 	NOP_0x32:
-	OP_MACRO 50, "NOP", "IMP", "NOP_0x32"
-	NEXT_MACRO
+		OP_MACRO 50, "NOP", "IMP", "NOP_0x32"
+		NEXT_MACRO
 
 	;0x33 - NOP
 	NOP_0x33:
-	OP_MACRO 51, "NOP", "IMP", "NOP_0x33"
-	NEXT_MACRO
+		OP_MACRO 51, "NOP", "IMP", "NOP_0x33"
+		NEXT_MACRO
 
 	;0x34 - NOP
 	NOP_0x34:
-	OP_MACRO 52, "NOP", "IMP", "NOP_0x34"
-	NEXT_MACRO
+		OP_MACRO 52, "NOP", "IMP", "NOP_0x34"
+		NEXT_MACRO
 
 	;0x35 - AND ZPX
 	AND_ZPX:
-	OP_MACRO 53, "AND", "ZPX", "AND_ZPX"
-	;code goes here
-	NEXT_MACRO
+		OP_MACRO 53, "AND", "ZPX", "AND_ZPX"
+		NEXT_MACRO
 
 	;0x36 - ROL ZPX
 	ROL_ZPX:
-	OP_MACRO 54, "ROL", "ZPX", "ROL_ZPX"
-	;code goes here
-	NEXT_MACRO
+		OP_MACRO 54, "ROL", "ZPX", "ROL_ZPX"
+		NEXT_MACRO
 
 	;0x37 - NOP
 	NOP_0x37:
-	OP_MACRO 55, "NOP", "IMP", "NOP_0x37"
-	NEXT_MACRO
+		OP_MACRO 55, "NOP", "IMP", "NOP_0x37"
+		NEXT_MACRO
 
 	;0x38 - SEC IMP
 	SEC_IMP:
-	OP_MACRO 56, "SEC", "IMP", "SEC_IMP"
-	;code goes here
-	NEXT_MACRO
+		OP_MACRO 56, "SEC", "IMP", "SEC_IMP"
+		NEXT_MACRO
 
 	;0x39 - AND ABSY
 	AND_ABSY:
-	OP_MACRO 57, "AND", "ABSY", "AND_ABSY"
-	;code goes here
-	NEXT_MACRO
+		OP_MACRO 57, "AND", "ABSY", "AND_ABSY"
+		NEXT_MACRO
 
 	;0x3A - NOP
 	NOP_0x3A:
-	OP_MACRO 58, "NOP", "IMP", "NOP_0x3A"
-	NEXT_MACRO
+		OP_MACRO 58, "NOP", "IMP", "NOP_0x3A"
+		NEXT_MACRO
 
 	;0x3B - NOP
 	NOP_0x3B:
-	OP_MACRO 59, "NOP", "IMP", "NOP_0x3B"
-	NEXT_MACRO
+		OP_MACRO 59, "NOP", "IMP", "NOP_0x3B"
+		NEXT_MACRO
 
 	;0x3C - NOP
 	NOP_0x3C:
-	OP_MACRO 60, "NOP", "IMP", "NOP_0x3C"
-	NEXT_MACRO
+		OP_MACRO 60, "NOP", "IMP", "NOP_0x3C"
+		NEXT_MACRO
 
 	;0x3D - AND ABSX
 	AND_ABSX:
-	OP_MACRO 61, "AND", "ABSX", "AND_ABSX"
-	;code goes here
-	NEXT_MACRO
+		OP_MACRO 61, "AND", "ABSX", "AND_ABSX"
+		NEXT_MACRO
 
 	;0x3E - ROL ABSX
 	ROL_ABSX:
-	OP_MACRO 62, "ROL", "ABSX", "ROL_ABSX"
-	;code goes here
-	NEXT_MACRO
+		OP_MACRO 62, "ROL", "ABSX", "ROL_ABSX"
+		NEXT_MACRO
 
 	;0x3F - NOP
 	NOP_0x3F:
-	OP_MACRO 63, "NOP", "IMP", "NOP_0x3F"
-	NEXT_MACRO
+		OP_MACRO 63, "NOP", "IMP", "NOP_0x3F"
+		NEXT_MACRO
 
 	;0x40 - RTI IMP
 	RTI_IMP:
-	OP_MACRO 64, "RTI", "IMP", "RTI_IMP"
-	;code goes here
-	NEXT_MACRO
+		OP_MACRO 64, "RTI", "IMP", "RTI_IMP"
+		NEXT_MACRO
 
 	;0x41 - EOR IX
 	EOR_IX:
-	OP_MACRO 65, "EOR", "IX", "EOR_IX"
-	;code goes here
-	NEXT_MACRO
+		OP_MACRO 65, "EOR", "IX", "EOR_IX"
+		NEXT_MACRO
 
 	;0x42 - NOP
 	NOP_0x42:
-	OP_MACRO 66, "NOP", "IMP", "NOP_0x42"
-	NEXT_MACRO
+		OP_MACRO 66, "NOP", "IMP", "NOP_0x42"
+		NEXT_MACRO
 
 	;0x43 - NOP
 	NOP_0x43:
-	OP_MACRO 67, "NOP", "IMP", "NOP_0x43"
-	NEXT_MACRO
+		OP_MACRO 67, "NOP", "IMP", "NOP_0x43"
+		NEXT_MACRO
 
 	;0x44 - NOP
 	NOP_0x44:
-	OP_MACRO 68, "NOP", "IMP", "NOP_0x44"
-	NEXT_MACRO
+		OP_MACRO 68, "NOP", "IMP", "NOP_0x44"
+		NEXT_MACRO
 
 	;0x45 - EOR ZP
 	EOR_ZP:
-	OP_MACRO 69, "EOR", "ZP", "EOR_ZP"
-	;code goes here
-	NEXT_MACRO
+		OP_MACRO 69, "EOR", "ZP", "EOR_ZP"
+		NEXT_MACRO
 
 	;0x46 - LSR ZP
 	LSR_ZP:
-	OP_MACRO 70, "LSR", "ZP", "LSR_ZP"
-	;code goes here
-	NEXT_MACRO
+		OP_MACRO 70, "LSR", "ZP", "LSR_ZP"
+		NEXT_MACRO
 
 	;0x47 - NOP
 	NOP_0x47:
-	OP_MACRO 71, "NOP", "IMP", "NOP_0x47"
-	NEXT_MACRO
+		OP_MACRO 71, "NOP", "IMP", "NOP_0x47"
+		NEXT_MACRO
 
 	;0x48 - PHA IMP
 	PHA_IMP:
-	OP_MACRO 72, "PHA", "IMP", "PHA_IMP"
-	;code goes here
-	NEXT_MACRO
+		OP_MACRO 72, "PHA", "IMP", "PHA_IMP"
+		NEXT_MACRO
 
 	;0x49 - EOR IMMED
 	EOR_IMMED:
-	OP_MACRO 73, "EOR", "IMMED", "EOR_IMMED"
-	;code goes here
-	NEXT_MACRO
+		OP_MACRO 73, "EOR", "IMMED", "EOR_IMMED"
+		NEXT_MACRO
 
 	;0x4A - LSR A
 	LSR_A:
-	OP_MACRO 74, "LSR", "A", "LSR_A"
-	;code goes here
-	NEXT_MACRO
+		OP_MACRO 74, "LSR", "A", "LSR_A"
+		NEXT_MACRO
 
 	;0x4B - NOP
 	NOP_0x4B:
-	OP_MACRO 75, "NOP", "IMP", "NOP_0x4B"
-	NEXT_MACRO
+		OP_MACRO 75, "NOP", "IMP", "NOP_0x4B"
+		NEXT_MACRO
 
 	;0x4C - JMP ABS
 	JMP_ABS:
-	OP_MACRO 76, "JMP", "ABS", "JMP_ABS"
-	;code goes here
-	NEXT_MACRO
+		OP_MACRO 76, "JMP", "ABS", "JMP_ABS"
+		NEXT_MACRO
 
 	;0x4D - EOR ABS
 	EOR_ABS:
-	OP_MACRO 77, "EOR", "ABS", "EOR_ABS"
-	;code goes here
-	NEXT_MACRO
+		OP_MACRO 77, "EOR", "ABS", "EOR_ABS"
+		NEXT_MACRO
 
 	;0x4E - LSR ABS
 	LSR_ABS:
-	OP_MACRO 78, "LSR", "ABS", "LSR_ABS"
-	;code goes here
-	NEXT_MACRO
+		OP_MACRO 78, "LSR", "ABS", "LSR_ABS"
+		NEXT_MACRO
 
 	;0x4F - NOP
 	NOP_0x4F:
-	OP_MACRO 79, "NOP", "IMP", "NOP_0x4F"
-	NEXT_MACRO
+		OP_MACRO 79, "NOP", "IMP", "NOP_0x4F"
+		NEXT_MACRO
 
 	;0x50 - BVC REL
 	BVC_REL:
-	OP_MACRO 80, "BVC", "REL", "BVC_REL"
-	;code goes here
-	NEXT_MACRO
+		OP_MACRO 80, "BVC", "REL", "BVC_REL"
+		NEXT_MACRO
 
 	;0x51 - EOR IY
 	EOR_IY:
-	OP_MACRO 81, "EOR", "IY", "EOR_IY"
-	;code goes here
-	NEXT_MACRO
+		OP_MACRO 81, "EOR", "IY", "EOR_IY"
+		NEXT_MACRO
 
 	;0x52 - NOP
 	NOP_0x52:
-	OP_MACRO 82, "NOP", "IMP", "NOP_0x52"
-	NEXT_MACRO
+		OP_MACRO 82, "NOP", "IMP", "NOP_0x52"
+		NEXT_MACRO
 
 	;0x53 - NOP
 	NOP_0x53:
-	OP_MACRO 83, "NOP", "IMP", "NOP_0x53"
-	NEXT_MACRO
+		OP_MACRO 83, "NOP", "IMP", "NOP_0x53"
+		NEXT_MACRO
 
 	;0x54 - NOP
 	NOP_0x54:
-	OP_MACRO 84, "NOP", "IMP", "NOP_0x54"
-	NEXT_MACRO
+		OP_MACRO 84, "NOP", "IMP", "NOP_0x54"
+		NEXT_MACRO
 
 	;0x55 - EOR ZPX
 	EOR_ZPX:
-	OP_MACRO 85, "EOR", "ZPX", "EOR_ZPX"
-	;code goes here
-	NEXT_MACRO
+		OP_MACRO 85, "EOR", "ZPX", "EOR_ZPX"
+		NEXT_MACRO
 
 	;0x56 - LSR ZPX
 	LSR_ZPX:
-	OP_MACRO 86, "LSR", "ZPX", "LSR_ZPX"
-	;code goes here
-	NEXT_MACRO
+		OP_MACRO 86, "LSR", "ZPX", "LSR_ZPX"
+		NEXT_MACRO
 
 	;0x57 - NOP
 	NOP_0x57:
-	OP_MACRO 87, "NOP", "IMP", "NOP_0x57"
-	NEXT_MACRO
+		OP_MACRO 87, "NOP", "IMP", "NOP_0x57"
+		NEXT_MACRO
 
 	;0x58 - CLI IMP
 	CLI_IMP:
-	OP_MACRO 88, "CLI", "IMP", "CLI_IMP"
-	;code goes here
-	NEXT_MACRO
+		OP_MACRO 88, "CLI", "IMP", "CLI_IMP"
+		NEXT_MACRO
 
 	;0x59 - EOR ABSY
 	EOR_ABSY:
-	OP_MACRO 89, "EOR", "ABSY", "EOR_ABSY"
-	;code goes here
-	NEXT_MACRO
+		OP_MACRO 89, "EOR", "ABSY", "EOR_ABSY"
+		NEXT_MACRO
 
 	;0x5A - NOP
 	NOP_0x5A:
-	OP_MACRO 90, "NOP", "IMP", "NOP_0x5A"
-	NEXT_MACRO
+		OP_MACRO 90, "NOP", "IMP", "NOP_0x5A"
+		NEXT_MACRO
 
 	;0x5B - NOP
 	NOP_0x5B:
-	OP_MACRO 91, "NOP", "IMP", "NOP_0x5B"
-	NEXT_MACRO
+		OP_MACRO 91, "NOP", "IMP", "NOP_0x5B"
+		NEXT_MACRO
 
 	;0x5C - NOP
 	NOP_0x5C:
-	OP_MACRO 92, "NOP", "IMP", "NOP_0x5C"
-	NEXT_MACRO
+		OP_MACRO 92, "NOP", "IMP", "NOP_0x5C"
+		NEXT_MACRO
 
 	;0x5D - EOR ABSX
 	EOR_ABSX:
-	OP_MACRO 93, "EOR", "ABSX", "EOR_ABSX"
-	;code goes here
-	NEXT_MACRO
+		OP_MACRO 93, "EOR", "ABSX", "EOR_ABSX"
+		NEXT_MACRO
 
 	;0x5E - LSR ABSX
 	LSR_ABSX:
-	OP_MACRO 94, "LSR", "ABSX", "LSR_ABSX"
-	;code goes here
-	NEXT_MACRO
+		OP_MACRO 94, "LSR", "ABSX", "LSR_ABSX"
+		NEXT_MACRO
 
 	;0x5F - NOP
 	NOP_0x5F:
-	OP_MACRO 95, "NOP", "IMP", "NOP_0x5F"
-	NEXT_MACRO
+		OP_MACRO 95, "NOP", "IMP", "NOP_0x5F"
+		NEXT_MACRO
 
 	;0x60 - RTS IMP
 	RTS_IMP:
-	OP_MACRO 96, "RTS", "IMP", "RTS_IMP"
-	;code goes here
-	NEXT_MACRO
+		OP_MACRO 96, "RTS", "IMP", "RTS_IMP"
+		NEXT_MACRO
 
 	;0x61 - ADC IX
 	ADC_IX:
-	OP_MACRO 97, "ADC", "IX", "ADC_IX"
-	;code goes here
-	NEXT_MACRO
+		OP_MACRO 97, "ADC", "IX", "ADC_IX"
+		NEXT_MACRO
 
 	;0x62 - NOP
 	NOP_0x62:
-	OP_MACRO 98, "NOP", "IMP", "NOP_0x62"
-	NEXT_MACRO
+		OP_MACRO 98, "NOP", "IMP", "NOP_0x62"
+		NEXT_MACRO
 
 	;0x63 - NOP
 	NOP_0x63:
-	OP_MACRO 99, "NOP", "IMP", "NOP_0x63"
-	NEXT_MACRO
+		OP_MACRO 99, "NOP", "IMP", "NOP_0x63"
+		NEXT_MACRO
 
 	;0x64 - NOP
 	NOP_0x64:
-	OP_MACRO 100, "NOP", "IMP", "NOP_0x64"
-	NEXT_MACRO
+		OP_MACRO 100, "NOP", "IMP", "NOP_0x64"
+		NEXT_MACRO
 
 	;0x65 - ADC ZP
 	ADC_ZP:
-	OP_MACRO 101, "ADC", "ZP", "ADC_ZP"
-	;code goes here
-	NEXT_MACRO
+		OP_MACRO 101, "ADC", "ZP", "ADC_ZP"
+		NEXT_MACRO
 
 	;0x66 - ROR ZP
 	ROR_ZP:
-	OP_MACRO 102, "ROR", "ZP", "ROR_ZP"
-	;code goes here
-	NEXT_MACRO
+		OP_MACRO 102, "ROR", "ZP", "ROR_ZP"
+		NEXT_MACRO
 
 	;0x67 - NOP
 	NOP_0x67:
-	OP_MACRO 103, "NOP", "IMP", "NOP_0x67"
-	NEXT_MACRO
+		OP_MACRO 103, "NOP", "IMP", "NOP_0x67"
+		NEXT_MACRO
 
 	;0x68 - PLA IMP
 	PLA_IMP:
-	OP_MACRO 104, "PLA", "IMP", "PLA_IMP"
-	;code goes here
-	NEXT_MACRO
+		OP_MACRO 104, "PLA", "IMP", "PLA_IMP"
+		NEXT_MACRO
 
 	;0x69 - ADC IMMED
 	ADC_IMMED:
-	OP_MACRO 105, "ADC", "IMMED", "ADC_IMMED"
-	;code goes here
-	NEXT_MACRO
+		OP_MACRO 105, "ADC", "IMMED", "ADC_IMMED"
+		NEXT_MACRO
 
 	;0x6A - ROR A
 	ROR_A:
-	OP_MACRO 106, "ROR", "A", "ROR_A"
-	;code goes here
-	NEXT_MACRO
+		OP_MACRO 106, "ROR", "A", "ROR_A"
+		NEXT_MACRO
 
 	;0x6B - NOP
 	NOP_0x6B:
-	OP_MACRO 107, "NOP", "IMP", "NOP_0x6B"
-	NEXT_MACRO
+		OP_MACRO 107, "NOP", "IMP", "NOP_0x6B"
+		NEXT_MACRO
 
 	;0x6C - JMP I
 	JMP_I:
-	OP_MACRO 108, "JMP", "I", "JMP_I"
-	;code goes here
-	NEXT_MACRO
+		OP_MACRO 108, "JMP", "I", "JMP_I"
+		NEXT_MACRO
 
 	;0x6D - ADC ABS
 	ADC_ABS:
-	OP_MACRO 109, "ADC", "ABS", "ADC_ABS"
-	;code goes here
-	NEXT_MACRO
+		OP_MACRO 109, "ADC", "ABS", "ADC_ABS"
+		NEXT_MACRO
 
 	;0x6E - ROR ABS
 	ROR_ABS:
-	OP_MACRO 110, "ROR", "ABS", "ROR_ABS"
-	;code goes here
-	NEXT_MACRO
+		OP_MACRO 110, "ROR", "ABS", "ROR_ABS"
+		NEXT_MACRO
 
 	;0x6F - NOP
 	NOP_0x6F:
-	OP_MACRO 111, "NOP", "IMP", "NOP_0x6F"
-	NEXT_MACRO
+		OP_MACRO 111, "NOP", "IMP", "NOP_0x6F"
+		NEXT_MACRO
 
 	;0x70 - BVS REL
 	BVS_REL:
-	OP_MACRO 112, "BVS", "REL", "BVS_REL"
-	;code goes here
-	NEXT_MACRO
+		OP_MACRO 112, "BVS", "REL", "BVS_REL"
+		NEXT_MACRO
 
 	;0x71 - ADC IY
 	ADC_IY:
-	OP_MACRO 113, "ADC", "IY", "ADC_IY"
-	;code goes here
-	NEXT_MACRO
+		OP_MACRO 113, "ADC", "IY", "ADC_IY"
+		NEXT_MACRO
 
 	;0x72 - NOP
 	NOP_0x72:
-	OP_MACRO 114, "NOP", "IMP", "NOP_0x72"
-	NEXT_MACRO
+		OP_MACRO 114, "NOP", "IMP", "NOP_0x72"
+		NEXT_MACRO
 
 	;0x73 - NOP
 	NOP_0x73:
-	OP_MACRO 115, "NOP", "IMP", "NOP_0x73"
-	NEXT_MACRO
+		OP_MACRO 115, "NOP", "IMP", "NOP_0x73"
+		NEXT_MACRO
 
 	;0x74 - NOP
 	NOP_0x74:
-	OP_MACRO 116, "NOP", "IMP", "NOP_0x74"
-	NEXT_MACRO
+		OP_MACRO 116, "NOP", "IMP", "NOP_0x74"
+		NEXT_MACRO
 
 	;0x75 - ADC ZPX
 	ADC_ZPX:
-	OP_MACRO 117, "ADC", "ZPX", "ADC_ZPX"
-	;code goes here
-	NEXT_MACRO
+		OP_MACRO 117, "ADC", "ZPX", "ADC_ZPX"
+		NEXT_MACRO
 
 	;0x76 - ROR ZPX
 	ROR_ZPX:
-	OP_MACRO 118, "ROR", "ZPX", "ROR_ZPX"
-	;code goes here
-	NEXT_MACRO
+		OP_MACRO 118, "ROR", "ZPX", "ROR_ZPX"
+		NEXT_MACRO
 
 	;0x77 - NOP
 	NOP_0x77:
-	OP_MACRO 119, "NOP", "IMP", "NOP_0x77"
-	NEXT_MACRO
+		OP_MACRO 119, "NOP", "IMP", "NOP_0x77"
+		NEXT_MACRO
 
 	;0x78 - SEI IMP
 	SEI_IMP:
-	OP_MACRO 120, "SEI", "IMP", "SEI_IMP"
-	;code goes here
-	NEXT_MACRO
+		OP_MACRO 120, "SEI", "IMP", "SEI_IMP"
+		NEXT_MACRO
 
 	;0x79 - ADC ABSY
 	ADC_ABSY:
-	OP_MACRO 121, "ADC", "ABSY", "ADC_ABSY"
-	;code goes here
-	NEXT_MACRO
+		OP_MACRO 121, "ADC", "ABSY", "ADC_ABSY"
+		NEXT_MACRO
 
 	;0x7A - NOP
 	NOP_0x7A:
-	OP_MACRO 122, "NOP", "IMP", "NOP_0x7A"
-	NEXT_MACRO
+		OP_MACRO 122, "NOP", "IMP", "NOP_0x7A"
+		NEXT_MACRO
 
 	;0x7B - NOP
 	NOP_0x7B:
-	OP_MACRO 123, "NOP", "IMP", "NOP_0x7B"
-	NEXT_MACRO
+		OP_MACRO 123, "NOP", "IMP", "NOP_0x7B"
+		NEXT_MACRO
 
 	;0x7C - NOP
 	NOP_0x7C:
-	OP_MACRO 124, "NOP", "IMP", "NOP_0x7C"
-	NEXT_MACRO
+		OP_MACRO 124, "NOP", "IMP", "NOP_0x7C"
+		NEXT_MACRO
 
 	;0x7D - ADC ABSX
 	ADC_ABSX:
-	OP_MACRO 125, "ADC", "ABSX", "ADC_ABSX"
-	;code goes here
-	NEXT_MACRO
+		OP_MACRO 125, "ADC", "ABSX", "ADC_ABSX"
+		NEXT_MACRO
 
 	;0x7E - ROR ABSX
 	ROR_ABSX:
-	OP_MACRO 126, "ROR", "ABSX", "ROR_ABSX"
-	;code goes here
-	NEXT_MACRO
+		OP_MACRO 126, "ROR", "ABSX", "ROR_ABSX"
+		NEXT_MACRO
 
 	;0x7F - NOP
 	NOP_0x7F:
-	OP_MACRO 127, "NOP", "IMP", "NOP_0x7F"
-	NEXT_MACRO
+		OP_MACRO 127, "NOP", "IMP", "NOP_0x7F"
+		NEXT_MACRO
 
 	;0x80 - NOP
 	NOP_0x80:
-	OP_MACRO 128, "NOP", "IMP", "NOP_0x80"
-	NEXT_MACRO
+		OP_MACRO 128, "NOP", "IMP", "NOP_0x80"
+		NEXT_MACRO
 
 	;0x81 - STA IX
 	STA_IX:
-	OP_MACRO 129, "STA", "IX", "STA_IX"
-	;code goes here
-	NEXT_MACRO
+		OP_MACRO 129, "STA", "IX", "STA_IX"
+		NEXT_MACRO
 
 	;0x82 - NOP
 	NOP_0x82:
-	OP_MACRO 130, "NOP", "IMP", "NOP_0x82"
-	NEXT_MACRO
+		OP_MACRO 130, "NOP", "IMP", "NOP_0x82"
+		NEXT_MACRO
 
 	;0x83 - NOP
 	NOP_0x83:
-	OP_MACRO 131, "NOP", "IMP", "NOP_0x83"
-	NEXT_MACRO
+		OP_MACRO 131, "NOP", "IMP", "NOP_0x83"
+		NEXT_MACRO
 
 	;0x84 - STY ZP
 	STY_ZP:
-	OP_MACRO 132, "STY", "ZP", "STY_ZP"
-	;code goes here
-	NEXT_MACRO
+		OP_MACRO 132, "STY", "ZP", "STY_ZP"
+		NEXT_MACRO
 
 	;0x85 - STA ZP
 	STA_ZP:
-	OP_MACRO 133, "STA", "ZP", "STA_ZP"
-	;code goes here
-	NEXT_MACRO
+		OP_MACRO 133, "STA", "ZP", "STA_ZP"
+		NEXT_MACRO
 
 	;0x86 - STX ZP
 	STX_ZP:
-	OP_MACRO 134, "STX", "ZP", "STX_ZP"
-	;code goes here
-	NEXT_MACRO
+		OP_MACRO 134, "STX", "ZP", "STX_ZP"
+		NEXT_MACRO
 
 	;0x87 - NOP
 	NOP_0x87:
-	OP_MACRO 135, "NOP", "IMP", "NOP_0x87"
-	NEXT_MACRO
+		OP_MACRO 135, "NOP", "IMP", "NOP_0x87"
+		NEXT_MACRO
 
 	;0x88 - DEY IMP
 	DEY_IMP:
-	OP_MACRO 136, "DEY", "IMP", "DEY_IMP"
-	;code goes here
-	NEXT_MACRO
+		OP_MACRO 136, "DEY", "IMP", "DEY_IMP"
+		NEXT_MACRO
 
 	;0x89 - NOP
 	NOP_0x89:
-	OP_MACRO 137, "NOP", "IMP", "NOP_0x89"
-	NEXT_MACRO
+		OP_MACRO 137, "NOP", "IMP", "NOP_0x89"
+		NEXT_MACRO
 
 	;0x8A - TXA IMP
 	TXA_IMP:
-	OP_MACRO 138, "TXA", "IMP", "TXA_IMP"
-	;code goes here
-	NEXT_MACRO
+		OP_MACRO 138, "TXA", "IMP", "TXA_IMP"
+		NEXT_MACRO
 
 	;0x8B - NOP
 	NOP_0x8B:
-	OP_MACRO 139, "NOP", "IMP", "NOP_0x8B"
-	NEXT_MACRO
+		OP_MACRO 139, "NOP", "IMP", "NOP_0x8B"
+		NEXT_MACRO
 
 	;0x8C - STY ABS
 	STY_ABS:
-	OP_MACRO 140, "STY", "ABS", "STY_ABS"
-	;code goes here
-	NEXT_MACRO
+		OP_MACRO 140, "STY", "ABS", "STY_ABS"
+		NEXT_MACRO
 
 	;0x8D - STA ABS
 	STA_ABS:
-	OP_MACRO 141, "STA", "ABS", "STA_ABS"
-	;code goes here
-	NEXT_MACRO
+		OP_MACRO 141, "STA", "ABS", "STA_ABS"
+		NEXT_MACRO
 
 	;0x8E - STX ABS
 	STX_ABS:
-	OP_MACRO 142, "STX", "ABS", "STX_ABS"
-	;code goes here
-	NEXT_MACRO
+		OP_MACRO 142, "STX", "ABS", "STX_ABS"
+		NEXT_MACRO
 
 	;0x8F - NOP
 	NOP_0x8F:
-	OP_MACRO 143, "NOP", "IMP", "NOP_0x8F"
-	NEXT_MACRO
+		OP_MACRO 143, "NOP", "IMP", "NOP_0x8F"
+		NEXT_MACRO
 
 	;0x90 - BCC REL
 	BCC_REL:
-	OP_MACRO 144, "BCC", "REL", "BCC_REL"
-	;code goes here
-	NEXT_MACRO
+		OP_MACRO 144, "BCC", "REL", "BCC_REL"
+		NEXT_MACRO
 
 	;0x91 - STA IY
 	STA_IY:
-	OP_MACRO 145, "STA", "IY", "STA_IY"
-	;code goes here
-	NEXT_MACRO
+		OP_MACRO 145, "STA", "IY", "STA_IY"
+		NEXT_MACRO
 
 	;0x92 - NOP
 	NOP_0x92:
-	OP_MACRO 146, "NOP", "IMP", "NOP_0x92"
-	NEXT_MACRO
+		OP_MACRO 146, "NOP", "IMP", "NOP_0x92"
+		NEXT_MACRO
 
 	;0x93 - NOP
 	NOP_0x93:
-	OP_MACRO 147, "NOP", "IMP", "NOP_0x93"
-	NEXT_MACRO
+		OP_MACRO 147, "NOP", "IMP", "NOP_0x93"
+		NEXT_MACRO
 
 	;0x94 - STY ZPX
 	STY_ZPX:
-	OP_MACRO 148, "STY", "ZPX", "STY_ZPX"
-	;code goes here
-	NEXT_MACRO
+		OP_MACRO 148, "STY", "ZPX", "STY_ZPX"
+		NEXT_MACRO
 
 	;0x95 - STA ZPX
 	STA_ZPX:
-	OP_MACRO 149, "STA", "ZPX", "STA_ZPX"
-	;code goes here
-	NEXT_MACRO
+		OP_MACRO 149, "STA", "ZPX", "STA_ZPX"
+		NEXT_MACRO
 
 	;0x96 - STX ZPY
 	STX_ZPY:
-	OP_MACRO 150, "STX", "ZPY", "STX_ZPY"
-	;code goes here
-	NEXT_MACRO
+		OP_MACRO 150, "STX", "ZPY", "STX_ZPY"
+		NEXT_MACRO
 
 	;0x97 - NOP
 	NOP_0x97:
-	OP_MACRO 151, "NOP", "IMP", "NOP_0x97"
-	NEXT_MACRO
+		OP_MACRO 151, "NOP", "IMP", "NOP_0x97"
+		NEXT_MACRO
 
 	;0x98 - TYA IMP
 	TYA_IMP:
-	OP_MACRO 152, "TYA", "IMP", "TYA_IMP"
-	;code goes here
-	NEXT_MACRO
+		OP_MACRO 152, "TYA", "IMP", "TYA_IMP"
+		NEXT_MACRO
 
 	;0x99 - STA ABSY
 	STA_ABSY:
-	OP_MACRO 153, "STA", "ABSY", "STA_ABSY"
-	;code goes here
-	NEXT_MACRO
+		OP_MACRO 153, "STA", "ABSY", "STA_ABSY"
+		NEXT_MACRO
 
 	;0x9A - TXS IMP
 	TXS_IMP:
-	OP_MACRO 154, "TXS", "IMP", "TXS_IMP"
-	;code goes here
-	NEXT_MACRO
+		OP_MACRO 154, "TXS", "IMP", "TXS_IMP"
+		NEXT_MACRO
 
 	;0x9B - NOP
 	NOP_0x9B:
-	OP_MACRO 155, "NOP", "IMP", "NOP_0x9B"
-	NEXT_MACRO
+		OP_MACRO 155, "NOP", "IMP", "NOP_0x9B"
+		NEXT_MACRO
 
 	;0x9C - NOP
 	NOP_0x9C:
-	OP_MACRO 156, "NOP", "IMP", "NOP_0x9C"
-	NEXT_MACRO
+		OP_MACRO 156, "NOP", "IMP", "NOP_0x9C"
+		NEXT_MACRO
 
 	;0x9D - STA ABSX
 	STA_ABSX:
-	OP_MACRO 157, "STA", "ABSX", "STA_ABSX"
-	;code goes here
-	NEXT_MACRO
+		OP_MACRO 157, "STA", "ABSX", "STA_ABSX"
+		NEXT_MACRO
 
 	;0x9E - NOP
 	NOP_0x9E:
-	OP_MACRO 158, "NOP", "IMP", "NOP_0x9E"
-	NEXT_MACRO
+		OP_MACRO 158, "NOP", "IMP", "NOP_0x9E"
+		NEXT_MACRO
 
 	;0x9F - NOP
 	NOP_0x9F:
-	OP_MACRO 159, "NOP", "IMP", "NOP_0x9F"
-	NEXT_MACRO
+		OP_MACRO 159, "NOP", "IMP", "NOP_0x9F"
+		NEXT_MACRO
 
 	;0xA0 - LDY IMMED
 	LDY_IMMED:
-	OP_MACRO 160, "LDY", "IMMED", "LDY_IMMED"
-	;code goes here
-	NEXT_MACRO
+		OP_MACRO 160, "LDY", "IMMED", "LDY_IMMED"
+		NEXT_MACRO
 
 	;0xA1 - LDA IX
 	LDA_IX:
-	OP_MACRO 161, "LDA", "IX", "LDA_IX"
-	;code goes here
-	NEXT_MACRO
+		OP_MACRO 161, "LDA", "IX", "LDA_IX"
+		NEXT_MACRO
 
 	;0xA2 - LDX IMMED
 	LDX_IMMED:
-	OP_MACRO 162, "LDX", "IMMED", "LDX_IMMED"
-	;code goes here
-	NEXT_MACRO
+		OP_MACRO 162, "LDX", "IMMED", "LDX_IMMED"
+		NEXT_MACRO
 
 	;0xA3 - NOP
 	NOP_0xA3:
-	OP_MACRO 163, "NOP", "IMP", "NOP_0xA3"
-	NEXT_MACRO
+		OP_MACRO 163, "NOP", "IMP", "NOP_0xA3"
+		NEXT_MACRO
 
 	;0xA4 - LDY ZP
 	LDY_ZP:
-	OP_MACRO 164, "LDY", "ZP", "LDY_ZP"
-	;code goes here
-	NEXT_MACRO
+		OP_MACRO 164, "LDY", "ZP", "LDY_ZP"
+		NEXT_MACRO
 
 	;0xA5 - LDA ZP
 	LDA_ZP:
-	OP_MACRO 165, "LDA", "ZP", "LDA_ZP"
-	;code goes here
-	NEXT_MACRO
+		OP_MACRO 165, "LDA", "ZP", "LDA_ZP"
+		NEXT_MACRO
 
 	;0xA6 - LDX ZP
 	LDX_ZP:
-	OP_MACRO 166, "LDX", "ZP", "LDX_ZP"
-	;code goes here
-	NEXT_MACRO
+		OP_MACRO 166, "LDX", "ZP", "LDX_ZP"
+		NEXT_MACRO
 
 	;0xA7 - NOP
 	NOP_0xA7:
-	OP_MACRO 167, "NOP", "IMP", "NOP_0xA7"
-	NEXT_MACRO
+		OP_MACRO 167, "NOP", "IMP", "NOP_0xA7"
+		NEXT_MACRO
 
 	;0xA8 - TAY IMP
 	TAY_IMP:
-	OP_MACRO 168, "TAY", "IMP", "TAY_IMP"
-	;code goes here
-	NEXT_MACRO
+		OP_MACRO 168, "TAY", "IMP", "TAY_IMP"
+		NEXT_MACRO
 
 	;0xA9 - LDA IMMED
 	LDA_IMMED:
-	OP_MACRO 169, "LDA", "IMMED", "LDA_IMMED"
-	;code goes here
-	NEXT_MACRO
+		OP_MACRO 169, "LDA", "IMMED", "LDA_IMMED"
+		LDA #$23
+		NEXT_MACRO
 
 	;0xAA - TAX IMP
 	TAX_IMP:
-	OP_MACRO 170, "TAX", "IMP", "TAX_IMP"
-	;code goes here
-	NEXT_MACRO
+		OP_MACRO 170, "TAX", "IMP", "TAX_IMP"
+		NEXT_MACRO
 
 	;0xAB - NOP
 	NOP_0xAB:
-	OP_MACRO 171, "NOP", "IMP", "NOP_0xAB"
-	NEXT_MACRO
+		OP_MACRO 171, "NOP", "IMP", "NOP_0xAB"
+		NEXT_MACRO
 
 	;0xAC - LDY ABS
 	LDY_ABS:
-	OP_MACRO 172, "LDY", "ABS", "LDY_ABS"
-	;code goes here
-	NEXT_MACRO
+		OP_MACRO 172, "LDY", "ABS", "LDY_ABS"
+		NEXT_MACRO
 
 	;0xAD - LDA ABS
 	LDA_ABS:
-	OP_MACRO 173, "LDA", "ABS", "LDA_ABS"
-	;code goes here
-	NEXT_MACRO
+		OP_MACRO 173, "LDA", "ABS", "LDA_ABS"
+		NEXT_MACRO
 
 	;0xAE - LDX ABS
 	LDX_ABS:
-	OP_MACRO 174, "LDX", "ABS", "LDX_ABS"
-	;code goes here
-	NEXT_MACRO
+		OP_MACRO 174, "LDX", "ABS", "LDX_ABS"
+		NEXT_MACRO
 
 	;0xAF - NOP
 	NOP_0xAF:
-	OP_MACRO 175, "NOP", "IMP", "NOP_0xAF"
-	NEXT_MACRO
+		OP_MACRO 175, "NOP", "IMP", "NOP_0xAF"
+		NEXT_MACRO
 
 	;0xB0 - BCS REL
 	BCS_REL:
-	OP_MACRO 176, "BCS", "REL", "BCS_REL"
-	;code goes here
-	NEXT_MACRO
+		OP_MACRO 176, "BCS", "REL", "BCS_REL"
+		NEXT_MACRO
 
 	;0xB1 - LDA IY
 	LDA_IY:
-	OP_MACRO 177, "LDA", "IY", "LDA_IY"
-	;code goes here
-	NEXT_MACRO
+		OP_MACRO 177, "LDA", "IY", "LDA_IY"
+		NEXT_MACRO
 
 	;0xB2 - NOP
 	NOP_0xB2:
-	OP_MACRO 178, "NOP", "IMP", "NOP_0xB2"
-	NEXT_MACRO
+		OP_MACRO 178, "NOP", "IMP", "NOP_0xB2"
+		NEXT_MACRO
 
 	;0xB3 - NOP
 	NOP_0xB3:
-	OP_MACRO 179, "NOP", "IMP", "NOP_0xB3"
-	NEXT_MACRO
+		OP_MACRO 179, "NOP", "IMP", "NOP_0xB3"
+		NEXT_MACRO
 
 	;0xB4 - LDY ZPX
 	LDY_ZPX:
-	OP_MACRO 180, "LDY", "ZPX", "LDY_ZPX"
-	;code goes here
-	NEXT_MACRO
+		OP_MACRO 180, "LDY", "ZPX", "LDY_ZPX"
+		NEXT_MACRO
 
 	;0xB5 - LDA ZPX
 	LDA_ZPX:
-	OP_MACRO 181, "LDA", "ZPX", "LDA_ZPX"
-	;code goes here
-	NEXT_MACRO
+		OP_MACRO 181, "LDA", "ZPX", "LDA_ZPX"
+		NEXT_MACRO
 
 	;0xB6 - LDX ZPY
 	LDX_ZPY:
-	OP_MACRO 182, "LDX", "ZPY", "LDX_ZPY"
-	;code goes here
-	NEXT_MACRO
+		OP_MACRO 182, "LDX", "ZPY", "LDX_ZPY"
+		NEXT_MACRO
 
 	;0xB7 - NOP
 	NOP_0xB7:
-	OP_MACRO 183, "NOP", "IMP", "NOP_0xB7"
-	NEXT_MACRO
+		OP_MACRO 183, "NOP", "IMP", "NOP_0xB7"
+		NEXT_MACRO
 
 	;0xB8 - CLV IMP
 	CLV_IMP:
-	OP_MACRO 184, "CLV", "IMP", "CLV_IMP"
-	;code goes here
-	NEXT_MACRO
+		OP_MACRO 184, "CLV", "IMP", "CLV_IMP"
+		NEXT_MACRO
 
 	;0xB9 - LDA ABSY
 	LDA_ABSY:
-	OP_MACRO 185, "LDA", "ABSY", "LDA_ABSY"
-	;code goes here
-	NEXT_MACRO
+		OP_MACRO 185, "LDA", "ABSY", "LDA_ABSY"
+		NEXT_MACRO
 
 	;0xBA - TSX IMP
 	TSX_IMP:
-	OP_MACRO 186, "TSX", "IMP", "TSX_IMP"
-	;code goes here
-	NEXT_MACRO
+		OP_MACRO 186, "TSX", "IMP", "TSX_IMP"
+		NEXT_MACRO
 
 	;0xBB - NOP
 	NOP_0xBB:
-	OP_MACRO 187, "NOP", "IMP", "NOP_0xBB"
-	NEXT_MACRO
+		OP_MACRO 187, "NOP", "IMP", "NOP_0xBB"
+		NEXT_MACRO
 
 	;0xBC - LDY ABSX
 	LDY_ABSX:
-	OP_MACRO 188, "LDY", "ABSX", "LDY_ABSX"
-	;code goes here
-	NEXT_MACRO
+		OP_MACRO 188, "LDY", "ABSX", "LDY_ABSX"
+		NEXT_MACRO
 
 	;0xBD - LDA ABSX
 	LDA_ABSX:
-	OP_MACRO 189, "LDA", "ABSX", "LDA_ABSX"
-	;code goes here
-	NEXT_MACRO
+		OP_MACRO 189, "LDA", "ABSX", "LDA_ABSX"
+		NEXT_MACRO
 
 	;0xBE - LDX ABSY
 	LDX_ABSY:
-	OP_MACRO 190, "LDX", "ABSY", "LDX_ABSY"
-	;code goes here
-	NEXT_MACRO
+		OP_MACRO 190, "LDX", "ABSY", "LDX_ABSY"
+		NEXT_MACRO
 
 	;0xBF - NOP
 	NOP_0xBF:
-	OP_MACRO 191, "NOP", "IMP", "NOP_0xBF"
-	NEXT_MACRO
+		OP_MACRO 191, "NOP", "IMP", "NOP_0xBF"
+		NEXT_MACRO
 
 	;0xC0 - CPY IMMED
 	CPY_IMMED:
-	OP_MACRO 192, "CPY", "IMMED", "CPY_IMMED"
-	;code goes here
-	NEXT_MACRO
+		OP_MACRO 192, "CPY", "IMMED", "CPY_IMMED"
+		NEXT_MACRO
 
 	;0xC1 - CMP IX
 	CMP_IX:
-	OP_MACRO 193, "CMP", "IX", "CMP_IX"
-	;code goes here
-	NEXT_MACRO
+		OP_MACRO 193, "CMP", "IX", "CMP_IX"
+		NEXT_MACRO
 
 	;0xC2 - NOP
 	NOP_0xC2:
-	OP_MACRO 194, "NOP", "IMP", "NOP_0xC2"
-	NEXT_MACRO
+		OP_MACRO 194, "NOP", "IMP", "NOP_0xC2"
+		NEXT_MACRO
 
 	;0xC3 - NOP
 	NOP_0xC3:
-	OP_MACRO 195, "NOP", "IMP", "NOP_0xC3"
-	NEXT_MACRO
+		OP_MACRO 195, "NOP", "IMP", "NOP_0xC3"
+		NEXT_MACRO
 
 	;0xC4 - CPY ZP
 	CPY_ZP:
-	OP_MACRO 196, "CPY", "ZP", "CPY_ZP"
-	;code goes here
-	NEXT_MACRO
+		OP_MACRO 196, "CPY", "ZP", "CPY_ZP"
+		NEXT_MACRO
 
 	;0xC5 - CMP ZP
 	CMP_ZP:
-	OP_MACRO 197, "CMP", "ZP", "CMP_ZP"
-	;code goes here
-	NEXT_MACRO
+		OP_MACRO 197, "CMP", "ZP", "CMP_ZP"
+		NEXT_MACRO
 
 	;0xC6 - DEC ZP
 	DEC_ZP:
-	OP_MACRO 198, "DEC", "ZP", "DEC_ZP"
-	;code goes here
-	NEXT_MACRO
+		OP_MACRO 198, "DEC", "ZP", "DEC_ZP"
+		NEXT_MACRO
 
 	;0xC7 - NOP
 	NOP_0xC7:
-	OP_MACRO 199, "NOP", "IMP", "NOP_0xC7"
-	NEXT_MACRO
+		OP_MACRO 199, "NOP", "IMP", "NOP_0xC7"
+		NEXT_MACRO
 
 	;0xC8 - INY IMP
 	INY_IMP:
-	OP_MACRO 200, "INY", "IMP", "INY_IMP"
-	;code goes here
-	NEXT_MACRO
+		OP_MACRO 200, "INY", "IMP", "INY_IMP"
+		NEXT_MACRO
 
 	;0xC9 - CMP IMMED
 	CMP_IMMED:
-	OP_MACRO 201, "CMP", "IMMED", "CMP_IMMED"
-	;code goes here
-	NEXT_MACRO
+		OP_MACRO 201, "CMP", "IMMED", "CMP_IMMED"
+		NEXT_MACRO
 
 	;0xCA - DEX IMP
 	DEX_IMP:
-	OP_MACRO 202, "DEX", "IMP", "DEX_IMP"
-	;code goes here
-	NEXT_MACRO
+		OP_MACRO 202, "DEX", "IMP", "DEX_IMP"
+		NEXT_MACRO
 
 	;0xCB - NOP
 	NOP_0xCB:
-	OP_MACRO 203, "NOP", "IMP", "NOP_0xCB"
-	NEXT_MACRO
+		OP_MACRO 203, "NOP", "IMP", "NOP_0xCB"
+		NEXT_MACRO
 
 	;0xCC - CPY ABS
 	CPY_ABS:
-	OP_MACRO 204, "CPY", "ABS", "CPY_ABS"
-	;code goes here
-	NEXT_MACRO
+		OP_MACRO 204, "CPY", "ABS", "CPY_ABS"
+		NEXT_MACRO
 
 	;0xCD - CMP ABS
 	CMP_ABS:
-	OP_MACRO 205, "CMP", "ABS", "CMP_ABS"
-	;code goes here
-	NEXT_MACRO
+		OP_MACRO 205, "CMP", "ABS", "CMP_ABS"
+		NEXT_MACRO
 
 	;0xCE - DEC ABS
 	DEC_ABS:
-	OP_MACRO 206, "DEC", "ABS", "DEC_ABS"
-	;code goes here
-	NEXT_MACRO
+		OP_MACRO 206, "DEC", "ABS", "DEC_ABS"
+		NEXT_MACRO
 
 	;0xCF - NOP
 	NOP_0xCF:
-	OP_MACRO 207, "NOP", "IMP", "NOP_0xCF"
-	NEXT_MACRO
+		OP_MACRO 207, "NOP", "IMP", "NOP_0xCF"
+		NEXT_MACRO
 
 	;0xD0 - BNE REL
 	BNE_REL:
-	OP_MACRO 208, "BNE", "REL", "BNE_REL"
-	;code goes here
-	NEXT_MACRO
+		OP_MACRO 208, "BNE", "REL", "BNE_REL"
+		NEXT_MACRO
 
 	;0xD1 - CMP IY
 	CMP_IY:
-	OP_MACRO 209, "CMP", "IY", "CMP_IY"
-	;code goes here
-	NEXT_MACRO
+		OP_MACRO 209, "CMP", "IY", "CMP_IY"
+		NEXT_MACRO
 
 	;0xD2 - NOP
 	NOP_0xD2:
-	OP_MACRO 210, "NOP", "IMP", "NOP_0xD2"
-	NEXT_MACRO
+		OP_MACRO 210, "NOP", "IMP", "NOP_0xD2"
+		NEXT_MACRO
 
 	;0xD3 - NOP
 	NOP_0xD3:
-	OP_MACRO 211, "NOP", "IMP", "NOP_0xD3"
-	NEXT_MACRO
+		OP_MACRO 211, "NOP", "IMP", "NOP_0xD3"
+		NEXT_MACRO
 
 	;0xD4 - NOP
 	NOP_0xD4:
-	OP_MACRO 212, "NOP", "IMP", "NOP_0xD4"
-	NEXT_MACRO
+		OP_MACRO 212, "NOP", "IMP", "NOP_0xD4"
+		NEXT_MACRO
 
 	;0xD5 - CMP ZPX
 	CMP_ZPX:
-	OP_MACRO 213, "CMP", "ZPX", "CMP_ZPX"
-	;code goes here
-	NEXT_MACRO
+		OP_MACRO 213, "CMP", "ZPX", "CMP_ZPX"
+		NEXT_MACRO
 
 	;0xD6 - DEC ZPX
 	DEC_ZPX:
-	OP_MACRO 214, "DEC", "ZPX", "DEC_ZPX"
-	;code goes here
-	NEXT_MACRO
+		OP_MACRO 214, "DEC", "ZPX", "DEC_ZPX"
+		NEXT_MACRO
 
 	;0xD7 - NOP
 	NOP_0xD7:
-	OP_MACRO 215, "NOP", "IMP", "NOP_0xD7"
-	NEXT_MACRO
+		OP_MACRO 215, "NOP", "IMP", "NOP_0xD7"
+		NEXT_MACRO
 
 	;0xD8 - CLD IMP
 	CLD_IMP:
-	OP_MACRO 216, "CLD", "IMP", "CLD_IMP"
-	;code goes here
-	NEXT_MACRO
+		OP_MACRO 216, "CLD", "IMP", "CLD_IMP"
+		NEXT_MACRO
 
 	;0xD9 - CMP ABSY
 	CMP_ABSY:
-	OP_MACRO 217, "CMP", "ABSY", "CMP_ABSY"
-	;code goes here
-	NEXT_MACRO
+		OP_MACRO 217, "CMP", "ABSY", "CMP_ABSY"
+		NEXT_MACRO
 
 	;0xDA - NOP
 	NOP_0xDA:
-	OP_MACRO 218, "NOP", "IMP", "NOP_0xDA"
-	NEXT_MACRO
+		OP_MACRO 218, "NOP", "IMP", "NOP_0xDA"
+		NEXT_MACRO
 
 	;0xDB - NOP
 	NOP_0xDB:
-	OP_MACRO 219, "NOP", "IMP", "NOP_0xDB"
-	NEXT_MACRO
+		OP_MACRO 219, "NOP", "IMP", "NOP_0xDB"
+		NEXT_MACRO
 
 	;0xDC - NOP
 	NOP_0xDC:
-	OP_MACRO 220, "NOP", "IMP", "NOP_0xDC"
-	NEXT_MACRO
+		OP_MACRO 220, "NOP", "IMP", "NOP_0xDC"
+		NEXT_MACRO
 
 	;0xDD - CMP ABSX
 	CMP_ABSX:
-	OP_MACRO 221, "CMP", "ABSX", "CMP_ABSX"
-	;code goes here
-	NEXT_MACRO
+		OP_MACRO 221, "CMP", "ABSX", "CMP_ABSX"
+		NEXT_MACRO
 
 	;0xDE - DEC ABSX
 	DEC_ABSX:
-	OP_MACRO 222, "DEC", "ABSX", "DEC_ABSX"
-	;code goes here
-	NEXT_MACRO
+		OP_MACRO 222, "DEC", "ABSX", "DEC_ABSX"
+		NEXT_MACRO
 
 	;0xDF - NOP
 	NOP_0xDF:
-	OP_MACRO 223, "NOP", "IMP", "NOP_0xDF"
-	NEXT_MACRO
+		OP_MACRO 223, "NOP", "IMP", "NOP_0xDF"
+		NEXT_MACRO
 
 	;0xE0 - CPX IMMED
 	CPX_IMMED:
-	OP_MACRO 224, "CPX", "IMMED", "CPX_IMMED"
-	;code goes here
-	NEXT_MACRO
+		OP_MACRO 224, "CPX", "IMMED", "CPX_IMMED"
+		NEXT_MACRO
 
 	;0xE1 - SBC IX
 	SBC_IX:
-	OP_MACRO 225, "SBC", "IX", "SBC_IX"
-	;code goes here
-	NEXT_MACRO
+		OP_MACRO 225, "SBC", "IX", "SBC_IX"
+		NEXT_MACRO
 
 	;0xE2 - NOP
 	NOP_0xE2:
-	OP_MACRO 226, "NOP", "IMP", "NOP_0xE2"
-	NEXT_MACRO
+		OP_MACRO 226, "NOP", "IMP", "NOP_0xE2"
+		NEXT_MACRO
 
 	;0xE3 - NOP
 	NOP_0xE3:
-	OP_MACRO 227, "NOP", "IMP", "NOP_0xE3"
-	NEXT_MACRO
+		OP_MACRO 227, "NOP", "IMP", "NOP_0xE3"
+		NEXT_MACRO
 
 	;0xE4 - CPX ZP
 	CPX_ZP:
-	OP_MACRO 228, "CPX", "ZP", "CPX_ZP"
-	;code goes here
-	NEXT_MACRO
+		OP_MACRO 228, "CPX", "ZP", "CPX_ZP"
+		NEXT_MACRO
 
 	;0xE5 - SBC ZP
 	SBC_ZP:
-	OP_MACRO 229, "SBC", "ZP", "SBC_ZP"
-	;code goes here
-	NEXT_MACRO
+		OP_MACRO 229, "SBC", "ZP", "SBC_ZP"
+		NEXT_MACRO
 
 	;0xE6 - INC ZP
 	INC_ZP:
-	OP_MACRO 230, "INC", "ZP", "INC_ZP"
-	;code goes here
-	NEXT_MACRO
+		OP_MACRO 230, "INC", "ZP", "INC_ZP"
+		NEXT_MACRO
 
 	;0xE7 - NOP
 	NOP_0xE7:
-	OP_MACRO 231, "NOP", "IMP", "NOP_0xE7"
-	NEXT_MACRO
+		OP_MACRO 231, "NOP", "IMP", "NOP_0xE7"
+		NEXT_MACRO
 
 	;0xE8 - INX IMP
 	INX_IMP:
-	OP_MACRO 232, "INX", "IMP", "INX_IMP"
-	;code goes here
-	NEXT_MACRO
+		OP_MACRO 232, "INX", "IMP", "INX_IMP"
+		NEXT_MACRO
 
 	;0xE9 - SBC IMMED
 	SBC_IMMED:
-	OP_MACRO 233, "SBC", "IMMED", "SBC_IMMED"
-	;code goes here
-	NEXT_MACRO
+		OP_MACRO 233, "SBC", "IMMED", "SBC_IMMED"
+		NEXT_MACRO
 
 	;0xEA - NOP IMP
 	NOP_IMP:
-	OP_MACRO 234, "NOP", "IMP", "NOP_IMP"
-	;code goes here
-	NEXT_MACRO
+		OP_MACRO 234, "NOP", "IMP", "NOP_IMP"
+		NEXT_MACRO
 
 	;0xEB - NOP
 	NOP_0xEB:
-	OP_MACRO 235, "NOP", "IMP", "NOP_0xEB"
-	NEXT_MACRO
+		OP_MACRO 235, "NOP", "IMP", "NOP_0xEB"
+		NEXT_MACRO
 
 	;0xEC - CPX ABS
 	CPX_ABS:
-	OP_MACRO 236, "CPX", "ABS", "CPX_ABS"
-	;code goes here
-	NEXT_MACRO
+		OP_MACRO 236, "CPX", "ABS", "CPX_ABS"
+		NEXT_MACRO
 
 	;0xED - SBC ABS
 	SBC_ABS:
-	OP_MACRO 237, "SBC", "ABS", "SBC_ABS"
-	;code goes here
-	NEXT_MACRO
+		OP_MACRO 237, "SBC", "ABS", "SBC_ABS"
+		NEXT_MACRO
 
 	;0xEE - INC ABS
 	INC_ABS:
-	OP_MACRO 238, "INC", "ABS", "INC_ABS"
-	;code goes here
-	NEXT_MACRO
+		OP_MACRO 238, "INC", "ABS", "INC_ABS"
+		NEXT_MACRO
 
 	;0xEF - NOP
 	NOP_0xEF:
-	OP_MACRO 239, "NOP", "IMP", "NOP_0xEF"
-	NEXT_MACRO
+		OP_MACRO 239, "NOP", "IMP", "NOP_0xEF"
+		NEXT_MACRO
 
 	;0xF0 - BEQ REL
 	BEQ_REL:
-	OP_MACRO 240, "BEQ", "REL", "BEQ_REL"
-	;code goes here
-	NEXT_MACRO
+		OP_MACRO 240, "BEQ", "REL", "BEQ_REL"
+		NEXT_MACRO
 
 	;0xF1 - SBC IY
 	SBC_IY:
-	OP_MACRO 241, "SBC", "IY", "SBC_IY"
-	;code goes here
-	NEXT_MACRO
+		OP_MACRO 241, "SBC", "IY", "SBC_IY"
+		NEXT_MACRO
 
 	;0xF2 - NOP
 	NOP_0xF2:
-	OP_MACRO 242, "NOP", "IMP", "NOP_0xF2"
-	NEXT_MACRO
+		OP_MACRO 242, "NOP", "IMP", "NOP_0xF2"
+		NEXT_MACRO
 
 	;0xF3 - NOP
 	NOP_0xF3:
-	OP_MACRO 243, "NOP", "IMP", "NOP_0xF3"
-	NEXT_MACRO
+		OP_MACRO 243, "NOP", "IMP", "NOP_0xF3"
+		NEXT_MACRO
 
 	;0xF4 - NOP
 	NOP_0xF4:
-	OP_MACRO 244, "NOP", "IMP", "NOP_0xF4"
-	NEXT_MACRO
+		OP_MACRO 244, "NOP", "IMP", "NOP_0xF4"
+		NEXT_MACRO
 
 	;0xF5 - SBC ZPX
 	SBC_ZPX:
-	OP_MACRO 245, "SBC", "ZPX", "SBC_ZPX"
-	;code goes here
-	NEXT_MACRO
+		OP_MACRO 245, "SBC", "ZPX", "SBC_ZPX"
+		NEXT_MACRO
 
 	;0xF6 - INC ZPX
 	INC_ZPX:
-	OP_MACRO 246, "INC", "ZPX", "INC_ZPX"
-	;code goes here
-	NEXT_MACRO
+		OP_MACRO 246, "INC", "ZPX", "INC_ZPX"
+		NEXT_MACRO
 
 	;0xF7 - NOP
 	NOP_0xF7:
-	OP_MACRO 247, "NOP", "IMP", "NOP_0xF7"
-	NEXT_MACRO
+		OP_MACRO 247, "NOP", "IMP", "NOP_0xF7"
+		NEXT_MACRO
 
 	;0xF8 - SED IMP
 	SED_IMP:
-	OP_MACRO 248, "SED", "IMP", "SED_IMP"
-	;code goes here
-	NEXT_MACRO
+		OP_MACRO 248, "SED", "IMP", "SED_IMP"
+		NEXT_MACRO
 
 	;0xF9 - SBC ABSY
 	SBC_ABSY:
-	OP_MACRO 249, "SBC", "ABSY", "SBC_ABSY"
-	;code goes here
-	NEXT_MACRO
+		OP_MACRO 249, "SBC", "ABSY", "SBC_ABSY"
+		NEXT_MACRO
 
 	;0xFA - NOP
 	NOP_0xFA:
-	OP_MACRO 250, "NOP", "IMP", "NOP_0xFA"
-	NEXT_MACRO
+		OP_MACRO 250, "NOP", "IMP", "NOP_0xFA"
+		NEXT_MACRO
 
 	;0xFB - NOP
 	NOP_0xFB:
-	OP_MACRO 251, "NOP", "IMP", "NOP_0xFB"
-	NEXT_MACRO
+		OP_MACRO 251, "NOP", "IMP", "NOP_0xFB"
+		NEXT_MACRO
 
 	;0xFC - NOP
 	NOP_0xFC:
-	OP_MACRO 252, "NOP", "IMP", "NOP_0xFC"
-	NEXT_MACRO
+		OP_MACRO 252, "NOP", "IMP", "NOP_0xFC"
+		NEXT_MACRO
 
 	;0xFD - SBC ABSX
 	SBC_ABSX:
-	OP_MACRO 253, "SBC", "ABSX", "SBC_ABSX"
-	;code goes here
-	NEXT_MACRO
+		OP_MACRO 253, "SBC", "ABSX", "SBC_ABSX"
+		NEXT_MACRO
 
 	;0xFE - INC ABSX
 	INC_ABSX:
-	OP_MACRO 254, "INC", "ABSX", "INC_ABSX"
-	;code goes here
-	NEXT_MACRO
+		OP_MACRO 254, "INC", "ABSX", "INC_ABSX"
+		NEXT_MACRO
 
 	;0xFF - NOP
 	NOP_0xFF:
-	OP_MACRO 255, "NOP", "IMP", "NOP_0xFF"
-	NEXT_MACRO
-	
-	
+		OP_MACRO 255, "NOP", "IMP", "NOP_0xFF"
+		NEXT_MACRO
+
+
 	;Jump table
+	ALIGN 256
 	JUMP_TABLE:
 	FDB BRK_IMP
 	FDB ORA_IX
@@ -1583,6 +1512,8 @@ emu_level = 0
 	FDB ADC_ABSX
 	FDB ROR_ABSX
 	FDB NOP_0x7F
+
+	JUMP_TABLE2:
 	FDB NOP_0x80
 	FDB STA_IX
 	FDB NOP_0x82
@@ -1711,7 +1642,7 @@ emu_level = 0
 	FDB SBC_ABSX
 	FDB INC_ABSX
 	FDB NOP_0xFF
-		
+
 	ORG $F800
 	example_prog:
 	
