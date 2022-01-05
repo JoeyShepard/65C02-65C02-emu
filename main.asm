@@ -48,12 +48,14 @@ MAX_EMU_LEVEL = 5
 	LOCALS_END
 		
 	ORG $C000
+	;Debug - file sizes
+	JSR DebugFileSizes
+	
 	;Setup before any emulator level loads
 	STZ global_emu_level
 	
 	;Setup for each emulator level
 	emu_begin:
-			
 		;Calculate local emu level
 		LDA global_emu_level
 		CMP #MAX_EMU_LEVEL
@@ -65,12 +67,14 @@ MAX_EMU_LEVEL = 5
 		;Calculate SP and ZP data stack pointer
 		TAY
 		TAX
+		BEQ .loop_done
 		LDA #0
 		CLC
 		.loop:
 			ADC #locals_size
 			DEX
 			BNE .loop
+		.loop_done:
 		TAX
 		STA emu_data_SP,X
 		STA emu_SP,X
@@ -99,5 +103,6 @@ MAX_EMU_LEVEL = 5
 	
 	include "instructions.asm"
 	include "jump-table.asm"
+	include "debug.asm"
 	include "test.asm"
 	

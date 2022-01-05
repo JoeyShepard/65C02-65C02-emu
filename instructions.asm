@@ -1,4 +1,6 @@
 	;Instruction routines
+	instructions_begin:
+
 	;0x0 - BRK IMP
 	BRK_IMP:
 		OP_MACRO 0, "BRK", "IMP", "BRK_IMP"
@@ -1279,4 +1281,5 @@
 		OP_MACRO 255, "NOP", "IMP", "NOP_0xFF"
 		NEXT_MACRO
 
-
+	instructions_end:
+instructions_size equ instructions_end-instructions_begin

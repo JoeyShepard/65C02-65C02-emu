@@ -1,4 +1,6 @@
 	;Jump table
+	jump_table_begin:
+
 	JUMP_TABLE_LO:
 	FCB lo(BRK_IMP)
 	FCB lo(ORA_IX)
@@ -514,3 +516,5 @@
 	FCB hi(SBC_ABSX)
 	FCB hi(INC_ABSX)
 	FCB hi(NOP_0xFF)
+	jump_table_end:
+jump_table_size equ jump_table_end-jump_table_begin
