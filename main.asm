@@ -4,7 +4,8 @@
 	;-Load code into RAM and recode! fair as long as done by 6502
 	; - JIT is possible I think!
 	;-Change NEXT_MACRO to jump? saves 4k 0_0
-
+	
+	
 	;Include macros first so available to all files
 	include macros.asm
 
@@ -39,6 +40,8 @@ MAX_EMU_LEVEL = 5
 		LOCAL emu_Y
 		LOCAL emu_D_flag
 		LOCAL emu_mem
+		LOCAL emu_temp_ZP
+		LOCAL emu_temp_ZP_hi
 		LOCAL emu_temp
 		LOCAL emu_temp_hi
 		LOCAL emu_temp2
@@ -82,6 +85,9 @@ MAX_EMU_LEVEL = 5
 		
 		;Clear emulated D flag
 		STZ emu_D_flag,X
+		
+		;Set up emu ZP pointer
+		STZ emu_temp_ZP+1,X
 		
 		;Load emulated PC
 		LDA #lo(test_prog)
