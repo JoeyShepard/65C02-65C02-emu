@@ -21,7 +21,6 @@ echo Generating hex file...
 ..\..\..\AS\bin\p2hex main.p -F Intel -l 32 -r $0000-$FFFF > hex.txt
 echo :02FFFC0000C043 > prog.hex
 type main.hex >> prog.hex
-type "test code\test.hex" >> prog.hex
 
 echo Copying...
 copy listing.lst "..\..\..\projects\6502 emu\local copy\listing.lst" > nul

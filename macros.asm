@@ -30,47 +30,89 @@ locals_end equ local_address
 locals_size equ locals_end-locals_begin
 	ENDM
 
+;???
+PC_NEXT MACRO
+	INC emu_PC,X
+	BNE .skip
+		INC emu_PC+1,X
+	.skip:
+	ENDM
+
+;Emulator instruction steps
+PRE_OP MACRO name, mode
+	SWITCH "mode"
+	CASE "IMMED_A"
+		PC_NEXT
+	CASE "IMMED_XY"
+		PC_NEXT
+		LDA (emu_PC,X)
+		STA emu_temp,X
+	ELSECASE
+		;Do nothing - prevents assembler warning
+	ENDCASE
+	ENDM
+
+OP MACRO name, mode
+	SWITCH "mode"
+	CASE "IMMED_A"
+		IF "name"<>"LDA"
+			LDA emu_A,X
+		ENDIF
+		PLP
+		name (emu_PC,X)
+		PHP
+		STA emu_A,X
+	ELSECASE
+		;Do nothing - prevents assembler warning
+	ENDCASE
+	ENDM
+
+POST_OP MACRO name, mode
+	PC_NEXT
+	ENDM
+
 ;Called when each instruction is executed
-OP_MACRO MACRO
-	;TODO
+OP_MACRO MACRO code, name, mode, full
+	;Preparation before emulated instruction
+	PRE_OP name, mode
+	OP name, mode
+	POST_OP name, mode
 	ENDM
 
 ;Advance to next instruction
 NEXT_MACRO MACRO
-			
-	halt
 	
 	;Method 1 - 60 cycles
 	;Jump table must be page aligned!!!
 	;LDA (emu_PC,X)			;6
 	;ASL					;2
-	;STA emu_ptr,X			;4
+	;STA emu_temp,X			;4
 	;LDA #hi(JUMP_TABLE)	;2
 	;ADC #0					;2
-	;STA emu_ptr+1,X		;4
-	;LDA (emu_ptr,X)		;6
-	;STA emu_ptr2,X			;4
-	;INC emu_ptr,X			;6
+	;STA emu_temp+1,X		;4
+	;LDA (emu_temp,X)		;6
+	;STA emu_temp2,X			;4
+	;INC emu_temp,X			;6
 	;BCC .skip				;2
-	;	INC emu_ptr+1,X		;6
+	;	INC emu_temp+1,X		;6
 	;.skip:
-	;LDA (emu_ptr,X)		;6
-	;STA emu_ptr2+1,X		;4
-	;JMP (emu_ptr2,X)		;6
+	;LDA (emu_temp,X)		;6
+	;STA emu_temp2+1,X		;4
+	;JMP (emu_temp2,X)		;6
 	
 	;Method 2 - 46 cycles
 	;Jump table must be page aligned!!!
 	;LDA (emu_PC,X)			;6
-	;STZ emu_ptr+1,X		;4
+	;STZ emu_temp+1,X		;4
 	;ASL					;2
-	;ROL emu_ptr+1,X		;6
+	;ROL emu_temp+1,X		;6
 	;ASL					;2
-	;ROL emu_ptr+1,X		;6
-	;STA emu_ptr,X			;4				
-	;LDA emu_ptr+1,X		;4
+	;ROL emu_temp+1,X		;6
+	;STA emu_temp,X			;4				
+	;LDA emu_temp+1,X		;4
 	;ADC #hi(JUMP_TABLE)	;2
-	;STA emu_ptr+1,X		;4
-	;JMP (emu_ptr2,X)		;6
+	;STA emu_temp+1,X		;4
+	;JMP (emu_temp2,X)		;6
 	
 	;Method 3 - 30 cycles
 	;TXA							;2
@@ -111,10 +153,10 @@ NEXT_MACRO MACRO
 	LDA (emu_PC,X)			;6
 	TAY						;2
 	LDA JUMP_TABLE_LO,Y		;4
-	STA emu_ptr,X			;4
+	STA emu_temp,X			;4
 	LDA JUMP_TABLE_HI,Y		;4
-	STA emu_ptr+1,X			;4
-	JMP (emu_ptr,X)			;6
+	STA emu_temp+1,X			;4
+	JMP (emu_temp,X)			;6
 				
 	ENDM
 			
