@@ -39,31 +39,121 @@ PC_NEXT MACRO
 	ENDM
 
 ;Emulator instruction steps
-PRE_OP MACRO name, mode
-	SWITCH "mode"
-	CASE "IMMED_A"
+PRE_OP MACRO amode
+	SWITCH "amode"
+	CASE "IMP"
+		;Nothing to do!
+	CASE "IMMED"
 		PC_NEXT
-	CASE "IMMED_XY"
+	CASE "ZP"
 		PC_NEXT
 		LDA (emu_PC,X)
-		STA emu_temp,X
+		STA emu_temp_ZP,X
 	ELSECASE
-		;Do nothing - prevents assembler warning
+		;error "Addressing mode not found: amode"
 	ENDCASE
 	ENDM
 
-OP MACRO name, mode
-	SWITCH "mode"
-	CASE "IMMED_A"
-		IF "name"<>"LDA"
-			LDA emu_A,X
-		ENDIF
+OP_STEP MACRO op, stepname	
+	SWITCH "stepname"
+		
+	;Immediates
+	;==========
+	CASE "BIT_TEMP_F"
 		PLP
-		name (emu_PC,X)
+		BIT emu_temp,X
 		PHP
+	CASE "BRK"
+		;TODO: set flag?
+		BRK
+		BRK
+		PC_NEXT
+	CASE "CMP_IMMED_F"
+		PLP
+		CMP (emu_PC,X)
+		PHP
+	CASE "CMP_TEMP_F"
+		PLP
+		CMP emu_PC,X
+		PHP
+	CASE "CMP_ZP_F"
+		PLP
+		CMP (emu_temp_ZP,X)
+		PHP		
+	CASE "LDA_0"
+		LDA #0
+	CASE "LDA_A"
+		LDA emu_A,X
+	CASE "LDA_X"
+		LDA emu_X,X
+	CASE "LDA_Y"
+		LDA emu_Y,X
+	CASE "LDA_IMMED"
+		LDA (emu_PC,X)
+	CASE "LDA_IMMED_F"
+		PLP
+		LDA (emu_PC,X)
+		PHP
+	CASE "LDA_ZP"
+		LDA (emu_temp_ZP,X)
+	CASE "LDA_ZP_F"
+		PLP
+		LDA (emu_temp_ZP,X)
+		PHP
+	CASE "OP_F"
+		PLP
+		op
+		PHP
+	CASE "OP_IMMED_F"
+		PLP
+		op (emu_PC,X)
+		PHP
+	CASE "OP_IMP_F"
+		PLP
+		op
+		PHP
+	CASE "OP_ZP_F"
+		PLP
+		op (emu_temp_ZP,X)
+		PHP
+	CASE "SED_F"
+		PLP
+		SED
+		PHP
+		CLD
+	CASE "STA_A"
 		STA emu_A,X
+	CASE "STA_X"
+		STA emu_X,X
+	CASE "STA_Y"
+		STA emu_Y,X
+	CASE "STA_TEMP"
+		STA emu_temp,X
+	CASE "STA_ZP"
+		STA (emu_temp_ZP,X)
+	CASE "TRB_ZP"
+		LDA (emu_temp_ZP,X)
+		STA emu_temp,X
+		LDA emu_A,X
+		PLP
+		BIT emu_temp,X
+		PHP
+		EOR #$FF
+		AND emu_temp,X
+		STA (emu_temp_ZP,X)
+	CASE "TSB_ZP"
+		LDA (emu_temp_ZP,X)
+		STA emu_temp,X
+		LDA emu_A,X
+		PLP
+		BIT emu_temp,X
+		PHP
+		ORA emu_A,X
+		STA (emu_temp_ZP,X)
+	CASE ""
+		;Do nothing
 	ELSECASE
-		;Do nothing - prevents assembler warning
+		error "Op step not found: stepname"
 	ENDCASE
 	ENDM
 
@@ -72,11 +162,13 @@ POST_OP MACRO name, mode
 	ENDM
 
 ;Called when each instruction is executed
-OP_MACRO MACRO code, name, mode, full
-	;Preparation before emulated instruction
-	PRE_OP name, mode
-	OP name, mode
-	POST_OP name, mode
+OP_MACRO MACRO code, name, mode, full, step1, step2, step3, step4
+	PRE_OP mode
+	OP_STEP name, step1
+	OP_STEP name, step2
+	OP_STEP name, step3
+	OP_STEP name, step4
+	POST_OP
 	ENDM
 
 ;Advance to next instruction

@@ -4,7 +4,7 @@
 	;-Load code into RAM and recode! fair as long as done by 6502
 	; - JIT is possible I think!
 	;-Change NEXT_MACRO to jump? saves 4k 0_0
-	
+	;-Use Y as PC?
 	
 	;Include macros first so available to all files
 	include macros.asm
@@ -38,8 +38,6 @@ MAX_EMU_LEVEL = 5
 		LOCAL emu_A
 		LOCAL emu_X
 		LOCAL emu_Y
-		LOCAL emu_D_flag
-		LOCAL emu_mem
 		LOCAL emu_temp_ZP
 		LOCAL emu_temp_ZP_hi
 		LOCAL emu_temp
@@ -57,6 +55,11 @@ MAX_EMU_LEVEL = 5
 	
 	;Setup for each emulator level
 	emu_begin:
+	
+		;Keep emulated flags on stack
+		SEI
+		CLD
+		PHP
 	
 		;Calculate local emu level
 		LDA global_emu_level
@@ -83,22 +86,11 @@ MAX_EMU_LEVEL = 5
 		TYA
 		STA emu_level,X
 		
-		;Clear emulated D flag
-		STZ emu_D_flag,X
-		
-		;Set up emu ZP pointer
-		STZ emu_temp_ZP+1,X
-		
 		;Load emulated PC
 		LDA #lo(test_prog)
 		STA emu_PC,X
 		LDA #hi(test_prog)
 		STA emu_PC+1,X
-	
-		;Keep emulated flags on stack
-		PHP
-		
-		halt
 		
 		;Start emulating - should never return from this
 		NEXT_MACRO
