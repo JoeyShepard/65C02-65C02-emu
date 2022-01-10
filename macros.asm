@@ -30,11 +30,11 @@ locals_end equ local_address
 locals_size equ locals_end-locals_begin
 	ENDM
 
-;???
+;Advance emulated PC
 PC_NEXT MACRO
 	INC emu_PC,X
 	BNE .skip
-		INC emu_PC+1,X
+		INC emu_PC_hi,X
 	.skip:
 	ENDM
 
@@ -48,7 +48,38 @@ PRE_OP MACRO amode
 	CASE "ZP"
 		PC_NEXT
 		LDA (emu_PC,X)
-		STA emu_temp_ZP,X
+		STA emu_ZP,X
+	CASE "ZPX"
+		PC_NEXT
+		LDA (emu_PC,X)
+		CLC
+		ADC emu_X,X
+		STA emu_ZP,X
+	CASE "ZPY"
+		PC_NEXT
+		LDA (emu_PC,X)
+		CLC
+		ADC emu_Y,X
+		STA emu_ZP,X
+	CASE "ABS"
+		PC_NEXT
+		LDA (emu_PC,X)
+		STA emu_address,X
+		PC_NEXT
+		LDA (emu_PC,X)
+		STA emu_address_hi,X
+	CASE "ABSX"
+		PC_NEXT
+		LDA (emu_PC,X)
+		CLC
+		ADC emu_X,X
+		STA emu_address,X
+		PC_NEXT
+		LDA (emu_PC,X)
+		ADC #0
+		STA emu_address_hi,X
+	CASE "ABS_CUST"
+		;Let JSR and JSR handle PC in OP_STEP below
 	ELSECASE
 		;error "Addressing mode not found: amode"
 	ENDCASE
@@ -57,8 +88,6 @@ PRE_OP MACRO amode
 OP_STEP MACRO op, stepname	
 	SWITCH "stepname"
 		
-	;Immediates
-	;==========
 	CASE "BIT_TEMP_F"
 		PLP
 		BIT emu_temp,X
@@ -68,26 +97,88 @@ OP_STEP MACRO op, stepname
 		BRK
 		BRK
 		PC_NEXT
+	CASE "CMP_ADDRESS_F"
+		PLP
+		CMP (emu_address,X)
+		PHP
 	CASE "CMP_IMMED_F"
 		PLP
 		CMP (emu_PC,X)
 		PHP
-	CASE "CMP_TEMP_F"
-		PLP
-		CMP emu_PC,X
-		PHP
 	CASE "CMP_ZP_F"
 		PLP
-		CMP (emu_temp_ZP,X)
-		PHP		
+		CMP (emu_ZP,X)
+		PHP	
+	CASE "DEX_F"
+		PLP
+		DEC emu_X,X
+		PHP
+	CASE "DEY_F"
+		PLP
+		DEC emu_Y,X
+		PHP
+	CASE "INX_F"
+		PLP
+		INC emu_X,X
+		PHP
+	CASE "INY_F"
+		PLP
+		INC emu_Y,X
+		PHP
+	CASE "JMP_ABS"
+		;Custom address loader - slightly smaller than PRE_OP of ABS
+		PC_NEXT
+		LDA (emu_PC,X)
+		TAY
+		PC_NEXT
+		LDA (emu_PC,X)
+		STY emu_PC,X
+		STA emu_PC_hi,X
+	CASE "JSR_ABS"
+		;Custom address loader - slightly smaller than PRE_OP of ABS
+		PC_NEXT
+		LDA (emu_PC,X)
+		TAY
+		PC_NEXT
+		LDA emu_PC,X
+		STA (emu_SP,X)
+		DEC emu_SP,X
+		LDA emu_PC_hi,X
+		STA (emu_SP,X)
+		DEC emu_SP,X
+		LDA (emu_PC,X)
+		STY emu_PC,X
+		STA emu_PC_hi,X
 	CASE "LDA_0"
 		LDA #0
 	CASE "LDA_A"
 		LDA emu_A,X
+	CASE "LDA_A_F"
+		PLP
+		LDA emu_A,X
+		PHP
 	CASE "LDA_X"
 		LDA emu_X,X
+	CASE "LDA_X_F"
+		PLP
+		LDA emu_X,X
+		PHP
 	CASE "LDA_Y"
 		LDA emu_Y,X
+	CASE "LDA_Y_F"
+		PLP
+		LDA emu_Y,X
+		PHP
+	CASE "LDA_SP_F"
+		PLP
+		LDA emu_SP,X
+		PHP
+	CASE "LDA_ADDRESS"
+		LDA (emu_address,X)
+	CASE "LDA_ADDRESS_F"
+		PLP
+		LDA (emu_address,X)
+		PHP
 	CASE "LDA_IMMED"
 		LDA (emu_PC,X)
 	CASE "LDA_IMMED_F"
@@ -95,14 +186,18 @@ OP_STEP MACRO op, stepname
 		LDA (emu_PC,X)
 		PHP
 	CASE "LDA_ZP"
-		LDA (emu_temp_ZP,X)
+		LDA (emu_ZP,X)
 	CASE "LDA_ZP_F"
 		PLP
-		LDA (emu_temp_ZP,X)
+		LDA (emu_ZP,X)
 		PHP
 	CASE "OP_F"
 		PLP
 		op
+		PHP
+	CASE "OP_ADDRESS_F"
+		PLP
+		op (emu_address,X)
 		PHP
 	CASE "OP_IMMED_F"
 		PLP
@@ -114,8 +209,39 @@ OP_STEP MACRO op, stepname
 		PHP
 	CASE "OP_ZP_F"
 		PLP
-		op (emu_temp_ZP,X)
+		op (emu_ZP,X)
 		PHP
+	CASE "PLA_PHA"
+		PLA
+		PHA
+	CASE "PLP_IMP"
+		INC emu_SP,X
+		PLA ; drop flags from stack
+		LDA (emu_SP,X)
+		PHA
+	CASE "PULL_F"
+		INC emu_SP,X
+		PLP
+		LDA (emu_SP,X)
+		PHP
+	CASE "PUSH"
+		STA (emu_SP,X)
+		DEC emu_SP,X
+	CASE "RTS_IMP"
+		INC emu_SP,X
+		LDA (emu_SP,X)
+		STA emu_PC_hi
+		INC emu_SP,X
+		LDA (emu_SP,X)
+		;STA emu_PC
+		
+		;Custom PC_NEXT - slightly faster
+		;INC emu_PC,X
+		INC
+		STA emu_PC
+		BNE .skip
+			INC emu_PC_hi,X
+		.skip:
 	CASE "SED_F"
 		PLP
 		SED
@@ -127,12 +253,16 @@ OP_STEP MACRO op, stepname
 		STA emu_X,X
 	CASE "STA_Y"
 		STA emu_Y,X
+	CASE "STA_SP"
+		STA emu_SP,X
+	CASE "STA_ADDRESS"
+		STA (emu_address,X)
 	CASE "STA_TEMP"
 		STA emu_temp,X
 	CASE "STA_ZP"
-		STA (emu_temp_ZP,X)
-	CASE "TRB_ZP"
-		LDA (emu_temp_ZP,X)
+		STA (emu_ZP,X)
+	CASE "TRB_ABS"
+		LDA (emu_address,X)
 		STA emu_temp,X
 		LDA emu_A,X
 		PLP
@@ -140,16 +270,38 @@ OP_STEP MACRO op, stepname
 		PHP
 		EOR #$FF
 		AND emu_temp,X
-		STA (emu_temp_ZP,X)
-	CASE "TSB_ZP"
-		LDA (emu_temp_ZP,X)
+		STA (emu_address,X)
+	CASE "TRB_ZP"
+		LDA (emu_ZP,X)
 		STA emu_temp,X
 		LDA emu_A,X
 		PLP
 		BIT emu_temp,X
 		PHP
-		ORA emu_A,X
-		STA (emu_temp_ZP,X)
+		EOR #$FF
+		AND emu_temp,X
+		STA (emu_ZP,X)
+	CASE "TSB_ABS"
+		LDA (emu_address,X)
+		STA emu_temp,X
+		LDA emu_A,X
+		PLP
+		BIT emu_temp,X
+		PHP
+		ORA emu_temp,X
+		STA (emu_address,X)
+	CASE "TSB_ZP"
+		LDA (emu_ZP,X)
+		STA emu_temp,X
+		LDA emu_A,X
+		PLP
+		BIT emu_temp,X
+		PHP
+		ORA emu_temp,X
+		STA (emu_ZP,X)
+	CASE "UNIMPLEMENTED"
+		;Instruction not implemented - loop forever
+		JMP *
 	CASE ""
 		;Do nothing
 	ELSECASE
@@ -168,7 +320,9 @@ OP_MACRO MACRO code, name, mode, full, step1, step2, step3, step4
 	OP_STEP name, step2
 	OP_STEP name, step3
 	OP_STEP name, step4
-	POST_OP
+	IF ("name" <> "JMP") && ("name"<>"JSR") && ("name"<>"RTS")
+		POST_OP
+	ENDIF
 	ENDM
 
 ;Advance to next instruction
@@ -247,8 +401,8 @@ NEXT_MACRO MACRO
 	LDA JUMP_TABLE_LO,Y		;4
 	STA emu_temp,X			;4
 	LDA JUMP_TABLE_HI,Y		;4
-	STA emu_temp+1,X			;4
-	JMP (emu_temp,X)			;6
+	STA emu_temp+1,X		;4
+	JMP (emu_temp,X)		;6
 				
 	ENDM
 			

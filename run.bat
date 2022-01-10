@@ -5,6 +5,9 @@ for /f %%i in ('time /T') do set datetime=%%i
 echo [%datetime%]
 REM echo.
 
+echo Generating jump table..
+jump-table.py
+
 echo Assembling...
 ..\..\..\AS\bin\asw main.asm -L -U -g -q -cpu 65C02 > asm.txt
 python "remove escape.py" asm.txt

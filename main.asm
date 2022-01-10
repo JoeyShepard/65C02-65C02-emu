@@ -1,10 +1,10 @@
 	;TODO
-	;-Split SP btw data SP and SP
-	; - more SP than data SP - 16 or so
 	;-Load code into RAM and recode! fair as long as done by 6502
 	; - JIT is possible I think!
+	; - 6502 and MIPS JIT each need copy in RAM in that case
+	; - also, how to keep 6502 JIT copies separate
 	;-Change NEXT_MACRO to jump? saves 4k 0_0
-	;-Use Y as PC?
+	;-Add STP and WAI
 	
 	;Include macros first so available to all files
 	include macros.asm
@@ -22,6 +22,7 @@ DEBUG_DEC16 = 	$FFEA
 
 	;65C02 emulator constants
 MAX_EMU_LEVEL = 5
+EMU_STACK_SIZE = 4
 
 	;Zero page variables - shared between emu levels
 	ZP_START 240
@@ -35,15 +36,18 @@ MAX_EMU_LEVEL = 5
 		LOCAL emu_PC
 		LOCAL emu_PC_hi
 		LOCAL emu_SP
+		LOCAL emu_SP_hi
 		LOCAL emu_A
 		LOCAL emu_X
 		LOCAL emu_Y
-		LOCAL emu_temp_ZP
-		LOCAL emu_temp_ZP_hi
+		LOCAL emu_ZP
+		LOCAL emu_ZP_hi
+		LOCAL emu_address
+		LOCAL emu_address_hi
 		LOCAL emu_temp
 		LOCAL emu_temp_hi
-		LOCAL emu_temp2
-		LOCAL emu_temp2_hi
+		;Last variable - stack space starts here
+		LOCAL emu_stack_begin
 	LOCALS_END
 		
 	ORG $C000
@@ -52,6 +56,8 @@ MAX_EMU_LEVEL = 5
 	
 	;Setup before any emulator level loads
 	STZ global_emu_level
+	LDX #EMU_STACK_SIZE-1
+	TXS
 	
 	;Setup for each emulator level
 	emu_begin:
@@ -69,22 +75,34 @@ MAX_EMU_LEVEL = 5
 		.level_good:
 		INC global_emu_level
 		
-		;Calculate SP and ZP data stack pointer
+		;Calculate ZP data stack pointers
 		TAY
 		TAX
 		BEQ .loop_done
 		LDA #0
 		CLC
 		.loop:
-			ADC #locals_size
+			ADC #(locals_size+EMU_STACK_SIZE)
 			DEX
 			BNE .loop
 		.loop_done:
 		TAX
 		STA emu_data_SP,X
-		STA emu_SP,X
 		TYA
 		STA emu_level,X
+		
+		;Set up emulated SP
+		LDA #EMU_STACK_SIZE-1	;Level 0 uses first stack chunk
+		INY						;emu_level+1
+		CLC
+		.loop_sp:
+			ADC #EMU_STACK_SIZE
+			DEY
+			BNE .loop_sp
+		.loop_sp_done:
+		STA emu_SP,X
+		LDA #1
+		STA emu_SP_hi,X
 		
 		;Load emulated PC
 		LDA #lo(test_prog)
@@ -92,7 +110,7 @@ MAX_EMU_LEVEL = 5
 		LDA #hi(test_prog)
 		STA emu_PC+1,X
 		
-		;Start emulating - should never return from this
+		;Jump into emulation and don't return
 		NEXT_MACRO
 		
 		halt
@@ -107,5 +125,5 @@ MAX_EMU_LEVEL = 5
 	include "instructions.asm"
 	include "jump-table.asm"
 	include "debug.asm"
-	include "test.asm"
+	include "tests.asm"
 	
