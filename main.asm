@@ -1,8 +1,8 @@
 	;TODO
-	;-Load code into RAM and recode! fair as long as done by 6502
-	; - JIT is possible I think!
-	; - 6502 and MIPS JIT each need copy in RAM in that case
-	; - also, how to keep 6502 JIT copies separate
+	;-6502 emu could understand recoded instructions leaving out flags
+	; - actually, wouldnt make sense unless 6502 side generates too
+	; - best idea is MIPS generating assembly and optimizing out flags
+	;-Example - 4 or 8 in one screen to demonstrate
 	;-Change NEXT_MACRO to jump? saves 4k 0_0
 	;-Add STP and WAI
 	
@@ -45,6 +45,7 @@ EMU_STACK_SIZE = 4
 		LOCAL emu_address
 		LOCAL emu_address_hi
 		LOCAL emu_temp
+		;Is this one used?
 		LOCAL emu_temp_hi
 		;Last variable - stack space starts here
 		LOCAL emu_stack_begin

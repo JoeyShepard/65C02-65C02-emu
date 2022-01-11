@@ -78,8 +78,54 @@ PRE_OP MACRO amode
 		LDA (emu_PC,X)
 		ADC #0
 		STA emu_address_hi,X
+	CASE "ABSY"
+		PC_NEXT
+		LDA (emu_PC,X)
+		CLC
+		ADC emu_Y,X
+		STA emu_address,X
+		PC_NEXT
+		LDA (emu_PC,X)
+		ADC #0
+		STA emu_address_hi,X
+	CASE "IZP"
+		PC_NEXT
+		LDA (emu_PC,X)
+		STA emu_ZP,X
+		LDA (emu_ZP,X)
+		STA emu_address,X
+		INC emu_ZP,X
+		LDA (emu_ZP,X)
+		STA emu_address_hi,X
+	CASE "IX"
+		PC_NEXT
+		LDA (emu_PC,X)
+		CLC
+		ADC emu_X,X
+		STA emu_ZP,X
+		LDA (emu_ZP,X)
+		STA emu_address,X
+		INC emu_ZP,X
+		LDA (emu_ZP,X)
+		STA emu_address_hi,X
+	CASE "IY"
+		PC_NEXT
+		LDA (emu_PC,X)
+		STA emu_ZP,X
+		LDA (emu_ZP,X)
+		CLC
+		ADC emu_Y,X
+		STA emu_address,X
+		INC emu_ZP,X
+		LDA (emu_ZP,X)
+		ADC #0
+		STA emu_address_hi,X
+	CASE "INDIRECT"
+		
+	CASE "IAX"
+		;TODO
 	CASE "ABS_CUST"
-		;Let JSR and JSR handle PC in OP_STEP below
+		;Let JMP and JSR handle PC in OP_STEP below
 	ELSECASE
 		;error "Addressing mode not found: amode"
 	ENDCASE
@@ -134,6 +180,39 @@ OP_STEP MACRO op, stepname
 		LDA (emu_PC,X)
 		STY emu_PC,X
 		STA emu_PC_hi,X
+	CASE "JMP_INDIRECT"
+		PC_NEXT
+		LDA (emu_PC,X)
+		STA emu_temp,X
+		PC_NEXT
+		LDA (emu_PC,X)
+		STA emu_temp_hi,X
+		LDA (emu_temp,X)
+		STA emu_PC,X
+		INC emu_temp,X
+		BNE .skip
+			inc emu_temp_hi
+		.skip:
+		LDA (emu_temp,X)
+		STA emu_PC_hi
+	CASE "JMP_IAX"
+		PC_NEXT
+		LDA (emu_PC,X)
+		CLC
+		ADC emu_X,X
+		STA emu_temp,X
+		PC_NEXT
+		LDA (emu_PC,X)
+		ADC #0
+		STA emu_temp_hi,X
+		LDA (emu_temp,X)
+		STA emu_PC,X
+		INC emu_temp,X
+		BNE .skip
+			inc emu_temp_hi
+		.skip:
+		LDA (emu_temp,X)
+		STA emu_PC_hi
 	CASE "JSR_ABS"
 		;Custom address loader - slightly smaller than PRE_OP of ABS
 		PC_NEXT

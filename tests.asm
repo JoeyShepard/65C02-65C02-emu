@@ -643,7 +643,286 @@
 		LDA #$76
 		CMP $20FF,X
 		
-		;41 more instructions to go plus BBRx and BBSx
+
+
+		;Absolute, Y
+		;============
+		;PRE:
+		;	PC_NEXT
+		;	LDA (emu_PC,X)
+		;	CLC
+		;	ADC emu_Y,X
+		;	STA emu_address,X
+		;	PC_NEXT
+		;	LDA (emu_PC,X)
+		;	ADC #0
+		;	STA emu_address_hi,X
+		
+		;Test
+		LDA #$23
+		STA $20FF
+		LDA #$34
+		STA $2100
+		LDA #$45
+		STA $2101
+		LDY #1
+		
+		LDA $20FE,Y
+		INY
+		LDA $20FE,Y
+		INY
+		LDA $20FE,Y
+		
+		LDY #1
+		LDA $20FE,Y
+		LDA $20FF,Y
+		LDA $2100,Y
+		
+		LDY #1
+		LDX $20FE,Y
+		INY
+		LDX $20FF,Y
+		
+		;Test
+		LDA #$56
+		LDX #$67
+		LDY #3
+		
+		STA $20FC,Y
+		
+		;Test
+		LDA #$55
+		STA $2100
+		LDA #$A5
+		STA $2101
+		LDY #1
+		
+		LDA #$5A
+		AND $20FF,Y
+		LDA #$5A
+		ORA $20FF,Y
+		LDA #$5A
+		EOR $20FF,Y
+		LDA #$23
+		CLC
+		ADC $20FF,Y
+		LDA #$87
+		SEC
+		SBC $20FF,Y
+		
+		LDY #1
+		LDA #$75
+		STA $20FF,Y
+		CMP $20FF,Y
+		LDA #$76
+		CMP $20FF,Y
+		
+		
+		
+		;(Zero page)
+		;===========
+		;PRE:
+		;	PC_NEXT
+		;	LDA (emu_PC,X)
+		;	STA emu_ZP,X
+		;	LDA (emu_ZP,X)
+		;   STA emu_address,X
+		;	INC emu_ZP,X
+		;	LDA (emu_ZP,X)
+		;	STA emu_address_hi,X
+		
+		;Test
+		LDA #$23
+		STA $BCDE
+		LDA #$DE
+		STA $F0
+		LDA #$BC
+		STA $F1
+
+		LDA ($F0)
+		LDA #$55
+		STA ($F0)
+		
+		LDA #$5A
+		AND ($F0)
+		LDA #$5A
+		ORA ($F0)
+		LDA #$5A
+		EOR ($F0)
+		LDA #$23
+		CLC
+		ADC ($F0)
+		LDA #$87
+		SEC
+		SBC ($F0)
+
+		LDA #$75
+		STA ($F0)
+		CMP	($F0)
+		LDA #$76
+		CMP	($F0)
+		
+		;(Zero page,X)
+		;=============
+		;PRE:
+		;	PC_NEXT
+		;	LDA (emu_PC,X)
+		;	CLC
+		;	ADC emu_X,X
+		;	STA emu_ZP,X
+		;	LDA (emu_ZP,X)
+		;   STA emu_address,X
+		;	INC emu_ZP,X
+		;	LDA (emu_ZP,X)
+		;	STA emu_address_hi,X
+		
+		;Test
+		LDA #$67
+		STA $ABCD
+		LDA #$CD
+		STA $F4
+		LDA #$AB
+		STA $F5
+		LDX #4
+
+		LDA ($F0,X)
+		LDA #$55
+		STA ($F0,X)
+		
+		LDA #$5A
+		AND ($F0,X)
+		LDA #$5A
+		ORA ($F0,X)
+		LDA #$5A
+		EOR ($F0,X)
+		LDA #$23
+		CLC
+		ADC ($F0,X)
+		LDA #$87
+		SEC
+		SBC ($F0,X)
+		
+		LDA #$75
+		STA ($F0,X)
+		CMP	($F0,X)
+		LDA #$76
+		CMP	($F0,X)
+		
+		;(Zero page),Y
+		;=============
+		;PRE:
+		;	PC_NEXT
+		;	LDA (emu_PC,X)
+		;	STA emu_ZP,X
+		;	LDA (emu_ZP,X)
+		;	CLC
+		;	ADC emu_Y,X
+		;   STA emu_address,X
+		;	INC emu_ZP,X
+		;	LDA (emu_ZP,X)
+		;	ADC #0
+		;	STA emu_address_hi,X
+		
+		;Test
+		LDA #$78
+		STA $AC07
+		LDA #lo($ABF0)
+		STA $F0
+		LDA #hi($ABF0)
+		STA $F1
+		LDY #$17
+
+		LDA ($F0),Y
+		LDA #$55
+		STA ($F0),Y
+		
+		LDA #$5A
+		AND ($F0),Y
+		LDA #$5A
+		ORA ($F0),Y
+		LDA #$5A
+		EOR ($F0),Y
+		LDA #$23
+		CLC
+		ADC ($F0),Y
+		LDA #$87
+		SEC
+		SBC ($F0),Y
+		
+		LDA #$75
+		STA ($F0),Y
+		CMP	($F0),Y
+		LDA #$76
+		CMP	($F0),Y
+		
+		
+		
+		;JMP (Absolute)
+		;==============
+		;PRE:
+		;	PC_NEXT
+		;	LDA (emu_PC,X)
+		;	STA emu_temp,X
+		;	PC_NEXT
+		;	LDA (emu_PC,X)
+		;	STA emu_temp_hi,X
+		;	LDA (emu_temp,X)
+		;	STA emu_PC,X
+		;	INC emu_temp,X
+		;	BNE .skip
+		;		inc emu_temp_hi
+		;	.skip:
+		;	LDA (emu_temp,X)
+		;	STA emu_PC_hi
+		
+		;Test
+		LDA #lo(jmp_skip1)
+		STA $8005
+		LDA #hi(jmp_skip1)
+		STA $8006
+		
+		JMP ($8005)
+		LDA #$FF
+		jmp_skip1:
+		LDA #$89
+		
+		
+		
+		;JMP (Absolute,X)
+		;================
+		;PRE:
+		;	PC_NEXT
+		;	LDA (emu_PC,X)
+		;	CLC
+		;	ADC emu_X,X
+		;	STA emu_temp,X
+		;	PC_NEXT
+		;	LDA (emu_PC,X)
+		;	ADC #0
+		;	STA emu_temp_hi,X
+		;	LDA (emu_temp,X)
+		;	STA emu_PC,X
+		;	INC emu_temp,X
+		;	BNE .skip
+		;		inc emu_temp_hi
+		;	.skip:
+		;	LDA (emu_temp,X)
+		;	STA emu_PC_hi
+		
+		;Test
+		LDA #lo(jmp_skip2)
+		STA $8000
+		LDA #hi(jmp_skip2)
+		STA $8001
+		LDX #2
+		
+		JMP ($7FFE,X)
+		LDA #$FF
+		jmp_skip2:
+		LDA #$9A
+		
+		
+		
 		
 		
 		
