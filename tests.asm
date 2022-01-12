@@ -923,6 +923,199 @@
 		
 		
 		
+		;Branches
+		;========
+		JMP begin_branch_tests
+		branch_test_failed:
+			LDA #'!'
+			STA DEBUG
+			halt
+			JMP *
+		begin_branch_tests:
+		
+;Provide equivalents for missing flag setting instructions: SEV, SEN, CLN, SEZ, CLZ
+NEWJUMP MACRO jump
+	IF "jump"="SEV"
+		LDA #$7F
+		ADC #1
+	ELSEIF ("jump"="SEN") || ("jump"="CLZ")
+		LDA #$80
+	ELSEIF ("jump"="CLN") || ("jump"="SEZ")
+		LDA #$0
+	ELSE
+		jump
+	ENDIF
+	ENDM
+		
+BRANCH_TEST MACRO br, jump, nojump
+		;Case where no branch should happen - ie CLC then BCS
+		NEWJUMP nojump
+		br branch_test1
+		LDA #'1'
+		STA DEBUG
+		JMP branch_test_good
+		branch_test1:
+		JMP branch_test_failed
+		branch_test_good:
+		
+		;Positive branch offset
+		NEWJUMP jump
+		br branch_test2
+		JMP branch_test_failed
+		branch_test2:
+		LDA #'2'
+		STA DEBUG
+		
+		;Negative branch offset
+		JMP branch_test3
+		branch_test4:
+			LDA #'3'
+			STA DEBUG
+			JMP branch_test5
+		branch_test3:
+		NEWJUMP jump
+		br branch_test4
+		JMP branch_test_failed
+		branch_test5:
+		LDA #' '
+		STA DEBUG
+		
+		ENDM
+		
+		BRANCH_TEST BCS, SEC, CLC 
+		BRANCH_TEST BCC, CLC, SEC 
+		BRANCH_TEST BVS, SEV, CLV		
+		BRANCH_TEST BVC, CLV, SEV
+		BRANCH_TEST BMI, SEN, CLN
+		BRANCH_TEST BPL, CLN, SEN
+		BRANCH_TEST BEQ, SEZ, CLZ
+		BRANCH_TEST BNE, CLZ, SEZ
+		
+		BRA bra_test1
+		JMP branch_test_failed
+		bra_test2:
+		LDA #'2'
+		STA DEBUG
+		BRA bra_test3
+		JMP branch_test_failed
+		bra_test1:
+		LDA #'1'
+		STA DEBUG
+		BRA bra_test2
+		JMP branch_test_failed
+		bra_test3:
+		LDA #10
+		STA DEBUG
+		
+		
+		
+		;BBS and BBR
+		;===========
+		
+		;Test
+		LDX #0
+		LDA #1
+		bbs_loop:
+			STA $E0,X
+			EOR #$FF
+			STA $E8,X
+			EOR #$FF
+			ASL
+			INX
+			CPX #8
+			BNE bbs_loop
+		STZ $F0
+		LDA #$FF
+		STA $F1
+		
+BBSTEST MACRO op, mem
+	;Branch not taken
+	op $F0, skip
+	LDA #'1'
+	STA DEBUG
+	JMP good
+	skip:
+	JMP branch_test_failed
+	good:
+	
+	;Positive branch taken
+	op mem, skip2
+	JMP branch_test_failed
+	skip2:
+	LDA #'2'
+	STA DEBUG
+	
+	;Negative branch taken
+	JMP neg1
+	neg2:
+	LDA #'3'
+	STA DEBUG
+	JMP done
+	neg1:
+	op mem, neg2
+	JMP branch_test_failed
+	done:
+	LDA #' '
+	STA DEBUG
+	ENDM	
+
+BBRTEST MACRO op, mem
+	;Branch not taken
+	op $F1, skip
+	LDA #'1'
+	STA DEBUG
+	JMP good
+	skip:
+	JMP branch_test_failed
+	good:
+	
+	;Positive branch taken
+	op mem, skip2
+	JMP branch_test_failed
+	skip2:
+	LDA #'2'
+	STA DEBUG
+	
+	;Negative branch taken
+	JMP neg1
+	neg2:
+	LDA #'3'
+	STA DEBUG
+	JMP done
+	neg1:
+	op mem, neg2
+	JMP branch_test_failed
+	done:
+	LDA #' '
+	STA DEBUG
+	ENDM	
+	
+	BBSTEST BBS0, $E0
+	BBSTEST BBS1, $E1
+	BBSTEST BBS2, $E2
+	BBSTEST BBS3, $E3
+	BBSTEST BBS4, $E4
+	BBSTEST BBS5, $E5
+	BBSTEST BBS6, $E6
+	BBSTEST BBS7, $E7
+	
+	LDA #10
+	STA DEBUG
+	
+	BBRTEST BBR0, $E8
+	BBRTEST BBR1, $E9
+	BBRTEST BBR2, $EA
+	BBRTEST BBR3, $EB
+	BBRTEST BBR4, $EC
+	BBRTEST BBR5, $ED
+	BBRTEST BBR6, $EE
+	BBRTEST BBR7, $EF
+	
+	halt
+		
+		
+		
+		
 		
 		
 		

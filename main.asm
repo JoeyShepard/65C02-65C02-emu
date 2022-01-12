@@ -22,11 +22,15 @@ DEBUG_DEC16 = 	$FFEA
 
 	;65C02 emulator constants
 MAX_EMU_LEVEL = 5
-EMU_STACK_SIZE = 4
+EMU_STACK_SIZE = 16
 
 	;Zero page variables - shared between emu levels
-	ZP_START 240
+	ZP_START $80
 		ZP global_emu_level
+		;Used for testing to keep track of level or ID
+		ZP test_level
+		;Room for emulated programs to use
+		ZP program_stacks
 	ZP_END
 	
 	;Locals - each emu level gets a copy
@@ -45,15 +49,24 @@ EMU_STACK_SIZE = 4
 		LOCAL emu_address
 		LOCAL emu_address_hi
 		LOCAL emu_temp
-		;Is this one used?
 		LOCAL emu_temp_hi
 		;Last variable - stack space starts here
 		LOCAL emu_stack_begin
 	LOCALS_END
 		
 	ORG $C000
+	
 	;Debug - file sizes
 	JSR DebugFileSizes
+	
+	;JavaScript emulator setup
+	LDA #BANK_GFX_RAM1
+	STA RAM_BANK2
+	LDA #BANK_GFX_RAM2
+	STA RAM_BANK3
+	
+	;Graphical test pattern
+	JMP gfx_test2
 	
 	;Setup before any emulator level loads
 	STZ global_emu_level
@@ -83,14 +96,13 @@ EMU_STACK_SIZE = 4
 		LDA #0
 		CLC
 		.loop:
-			ADC #(locals_size+EMU_STACK_SIZE)
+			ADC #locals_size
 			DEX
 			BNE .loop
 		.loop_done:
 		TAX
 		STA emu_data_SP,X
-		TYA
-		STA emu_level,X
+		STY emu_level,X
 		
 		;Set up emulated SP
 		LDA #EMU_STACK_SIZE-1	;Level 0 uses first stack chunk
@@ -127,4 +139,5 @@ EMU_STACK_SIZE = 4
 	include "jump-table.asm"
 	include "debug.asm"
 	include "tests.asm"
+	include "gfx_tests.asm"
 	

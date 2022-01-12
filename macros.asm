@@ -1,6 +1,6 @@
 ;Zero page variables
 ZP_START MACRO ptr
-zp_begin equ ptr
+zp_begin set ptr
 zp_address set ptr
 	ENDM
 			
@@ -10,13 +10,13 @@ zp_address set zp_address+1
 	ENDM
 	
 ZP_END MACRO
-zp_end equ zp_address
-zp_size equ zp_address-zp_begin
+zp_end set zp_address
+zp_size set zp_address-zp_begin
 	ENDM
 	
 ;Local variables - each emu level gets a copy
 LOCALS_START MACRO ptr
-locals_begin equ ptr
+locals_begin set ptr
 local_address set ptr
 	ENDM
 
@@ -26,8 +26,13 @@ local_address set local_address+1
 	ENDM
 
 LOCALS_END MACRO
-locals_end equ local_address
-locals_size equ locals_end-locals_begin
+locals_end set local_address
+locals_size set locals_end-locals_begin
+	ENDM
+
+;Defining constants - looks better than not allowing indentation
+DEFINE MACRO symbol, value
+symbol set value
 	ENDM
 
 ;Advance emulated PC
@@ -120,26 +125,79 @@ PRE_OP MACRO amode
 		LDA (emu_ZP,X)
 		ADC #0
 		STA emu_address_hi,X
-	CASE "INDIRECT"
-		
-	CASE "IAX"
-		;TODO
+	CASE "REL"
+		PC_NEXT
 	CASE "ABS_CUST"
 		;Let JMP and JSR handle PC in OP_STEP below
+	CASE "INDIRECT_CUST"
+		;Let JMP (Absolute) handle PC in OP_STEP below
+	CASE "IAX_CUST"
+		;Let JMP (Absolute,X) handle PC in OP_STEP below
 	ELSECASE
-		;error "Addressing mode not found: amode"
+		fatal "Addressing mode not found: amode"
 	ENDCASE
 	ENDM
 
+BRANCH_MACRO MACRO
+	LDY #0
+	LDA (emu_PC,X)
+	BPL .positive
+	LDY #$FF
+	.positive:
+	CLC
+	ADC emu_PC,X
+	STA emu_PC,X
+	TYA
+	ADC emu_PC_hi,X
+	STA emu_PC_hi
+	ENDM
+	
 OP_STEP MACRO op, stepname	
+
 	SWITCH "stepname"
-		
+	CASE "BBR_BB"
+		PC_NEXT
+		AND (emu_ZP,X)
+		BNE .skip
+			BRANCH_MACRO
+		.skip:
+	CASE "BBS_BB"
+		PC_NEXT
+		AND (emu_ZP,X)
+		BEQ .skip
+			BRANCH_MACRO
+		.skip:
 	CASE "BIT_TEMP_F"
 		PLP
 		BIT emu_temp,X
 		PHP
-	CASE "BRK"
-		;TODO: set flag?
+	CASE "BRANCH_REL"
+		PLP
+		PHP
+		SWITCH "op"
+		CASE "BCS"
+			BCC .skip
+		CASE "BCC"
+			BCS .skip
+		CASE "BEQ"
+			BNE .skip
+		CASE "BNE"
+			BEQ .skip
+		CASE "BMI"
+			BPL .skip
+		CASE "BPL"
+			BMI .skip
+		CASE "BVS"
+			BVC .skip
+		CASE "BVC"
+			BVS .skip
+		CASE "BRA"
+			;Always branch - no skip
+		ENDCASE
+			BRANCH_MACRO
+		.skip:
+	CASE "BRK_IMP"
+		;TODO: set B flag?
 		BRK
 		BRK
 		PC_NEXT
@@ -181,6 +239,7 @@ OP_STEP MACRO op, stepname
 		STY emu_PC,X
 		STA emu_PC_hi,X
 	CASE "JMP_INDIRECT"
+		;Custom address loader
 		PC_NEXT
 		LDA (emu_PC,X)
 		STA emu_temp,X
@@ -196,6 +255,7 @@ OP_STEP MACRO op, stepname
 		LDA (emu_temp,X)
 		STA emu_PC_hi
 	CASE "JMP_IAX"
+		;Custom address loader
 		PC_NEXT
 		LDA (emu_PC,X)
 		CLC
@@ -214,7 +274,7 @@ OP_STEP MACRO op, stepname
 		LDA (emu_temp,X)
 		STA emu_PC_hi
 	CASE "JSR_ABS"
-		;Custom address loader - slightly smaller than PRE_OP of ABS
+		;Custom address loader
 		PC_NEXT
 		LDA (emu_PC,X)
 		TAY
@@ -270,6 +330,22 @@ OP_STEP MACRO op, stepname
 		PLP
 		LDA (emu_ZP,X)
 		PHP
+	CASE "LDA_BIT0"
+		LDA #$01
+	CASE "LDA_BIT1"
+		LDA #$02
+	CASE "LDA_BIT2"
+		LDA #$04
+	CASE "LDA_BIT3"
+		LDA #$08
+	CASE "LDA_BIT4"
+		LDA #$10
+	CASE "LDA_BIT5"
+		LDA #$20
+	CASE "LDA_BIT6"
+		LDA #$40
+	CASE "LDA_BIT7"
+		LDA #$80
 	CASE "OP_F"
 		PLP
 		op
@@ -384,7 +460,7 @@ OP_STEP MACRO op, stepname
 	CASE ""
 		;Do nothing
 	ELSECASE
-		error "Op step not found: stepname"
+		fatal "Op step not found: stepname"
 	ENDCASE
 	ENDM
 
@@ -399,9 +475,12 @@ OP_MACRO MACRO code, name, mode, full, step1, step2, step3, step4
 	OP_STEP name, step2
 	OP_STEP name, step3
 	OP_STEP name, step4
-	IF ("name" <> "JMP") && ("name"<>"JSR") && ("name"<>"RTS")
+	SWITCH "name"
+	CASE "JMP","JSR","RTS"
+		;No POST_OP - handled above
+	ELSECASE
 		POST_OP
-	ENDIF
+	ENDCASE
 	ENDM
 
 ;Advance to next instruction
