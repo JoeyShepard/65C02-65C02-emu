@@ -24,34 +24,61 @@
 		DEFINE FRAME_WIDTH, 64
 		DEFINE FRAME_HEIGHT, 64
 		DEFINE X_COUNT, 4
+		DEFINE GFX_STACK_SIZE, 8
 		
 		;Just declarations - no code generated
 		LOCALS_START 0
 			LOCAL local_level
-			LOCAL color
+			LOCAL ball_color
+			LOCAL bg_color
 			LOCAL origin
 			LOCAL origin_hi
 			LOCAL gfx_ptr
 			LOCAL gfx_ptr_hi
 			LOCAL counter1
 			LOCAL counter2
+			LOCAL SP,X
 		LOCALS_END
 		
 		;Run once before any instance loads
 		STZ test_level
 		
-		.new_frame:
-		;Allocate part of data stack for this instance
-		LDA test_level
-		TAY
-		JSR alloc_prog_stack
+		.draw_bg:
+		;Allocate data stack
+		LDA #0
+		LDX test_level
+		BEQ .ds_loop_done
+		CLC
+		.ds_loop:
+			ADC #locals_size
+			DEX
+			BNE .ds_loop
+		.ds_loop_done:
+		CLC
+		ADC #program_stacks
+		TAX
+		LDY test_level
 		STY local_level,X
 		
-		halt
+		;Set return stack pointer
+		INY
+		LDA #0
+		.rs_loop:
+			CLC
+			ADC #GFX_STACK_SIZE
+			DEY
+			BNE .rs_loop
+		STX test_temp
+		TAX
+		TXS
+		LDX test_temp
 		
-		;Background color
-		LDA gfx_test2_colors,Y
-		STA color,X
+		;Background and ball colors
+		LDY local_level,X
+		LDA gfx_test2_bg_colors,Y
+		STA bg_color,X
+		LDA gfx_test2_ball_colors,Y
+		STA ball_color,X
 		
 		;Calculate screen coordinates
 		LDA local_level,X
@@ -86,7 +113,7 @@
 			STA gfx_ptr,X
 			LDY #FRAME_WIDTH
 			.draw_loop:
-				LDA color,X
+				LDA bg_color,X
 				STA (gfx_ptr,X)
 				INC gfx_ptr,X
 				DEY
@@ -95,53 +122,82 @@
 			DEC counter1,X
 			BNE .draw_loop_outer
 		
-		
-		;Debug
-		;=====
-		
-		;Advance to next frame
+		;Advance to next background drawing
 		LDA test_level
 		INC
 		CMP #8
-		BNE .level_reset_done
-		LDA #0
-		.level_reset_done:
 		STA test_level
-		JMP .new_frame
+		BEQ .begin_ball_drawing
+		JMP .draw_bg
+		
+		;Background drawing done - start drawing ball animations
+		.begin_ball_drawing:
+		;STZ test_level
+		.draw_ball:
+		
+			halt
+		
+			;Save SP
+			STX test_temp
+			TSX
+			TXA
+			LDX test_temp
+			STA SP,X
 			
-	gfx_test2_colors:
+			;Calculate next frame's data stack pointer
+			LDA local_level,X
+			CMP #7
+			BNE .increase_stack
+				LDA #program_stacks
+				BRA .stack_done
+			.increase_stack:
+				TXA
+				CLC
+				ADC #locals_size
+			.stack_done:
+			TAX
+			STA test_temp
+			
+			halt
+			
+			;Load new SP
+			LDA SP,X
+			TAX
+			TXS
+			LDX test_temp
+			
+			;Draw ball
+			LDA ball_color,X
+			STA (origin,X)
+			
+			;Next frame
+			JMP .draw_ball
+			
+	gfx_test2_bg_colors:
+		FCB $01		;Red
+		FCB $04		;Green
+		FCB $10		;Blue
+		FCB $11		;Purple
+		FCB $14		;Cyan
+		FCB $05		;Yellow
+		FCB $15		;Dark gray
+		FCB $00		;Black
+			
+	gfx_test2_ball_colors:
 		FCB $03		;Red
 		FCB $0C		;Green
 		FCB $30		;Blue
 		FCB $33		;Purple
 		FCB $3C		;Cyan
 		FCB $0F		;Yellow
+		FCB $3F		;White
 		FCB $2A		;Light gray
-		FCB $15		;Dark gray
 			
 			
 			
 			
 			
 			
-			
-			
-	;Helper function to calculate program stacks
-	alloc_prog_stack:
-		TAX
-		BEQ .loop_done
-		LDA #0
-		CLC
-		.loop:
-			ADC #locals_size
-			DEX
-			BNE .loop
-		.loop_done:
-		CLC
-		ADC #program_stacks
-		TAX
-		RTS
-		
-		
+	
 		
 		

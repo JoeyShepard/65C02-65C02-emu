@@ -29,6 +29,7 @@ EMU_STACK_SIZE = 16
 		ZP global_emu_level
 		;Used for testing to keep track of level or ID
 		ZP test_level
+		ZP test_temp
 		;Room for emulated programs to use
 		ZP program_stacks
 	ZP_END
@@ -89,7 +90,7 @@ EMU_STACK_SIZE = 16
 		.level_good:
 		INC global_emu_level
 		
-		;Calculate ZP data stack pointers
+		;Calculate ZP data stack pointer
 		TAY
 		TAX
 		BEQ .loop_done
