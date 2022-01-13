@@ -29,7 +29,6 @@ EMU_STACK_SIZE = 16
 		ZP global_emu_level
 		;Used for testing to keep track of level or ID
 		ZP test_level
-		ZP test_temp
 		;Room for emulated programs to use
 		ZP program_stacks
 	ZP_END

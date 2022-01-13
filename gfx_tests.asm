@@ -29,56 +29,32 @@
 		;Just declarations - no code generated
 		LOCALS_START 0
 			LOCAL local_level
-			LOCAL ball_color
-			LOCAL bg_color
+			LOCAL color_temp
 			LOCAL origin
 			LOCAL origin_hi
 			LOCAL gfx_ptr
 			LOCAL gfx_ptr_hi
 			LOCAL counter1
-			LOCAL counter2
-			LOCAL SP,X
+			LOCAL ball_X
+			LOCAL ball_Y
 		LOCALS_END
 		
-		;Run once before any instance loads
+		;Initialize all threads - runs once before any emulation loads
 		STZ test_level
-		
-		.draw_bg:
-		;Allocate data stack
-		LDA #0
-		LDX test_level
-		BEQ .ds_loop_done
-		CLC
-		.ds_loop:
-			ADC #locals_size
-			DEX
-			BNE .ds_loop
-		.ds_loop_done:
-		CLC
-		ADC #program_stacks
-		TAX
-		LDY test_level
-		STY local_level,X
-		
-		;Set return stack pointer
-		INY
-		LDA #0
-		.rs_loop:
+		LDY #0
+		LDA #program_stacks
+		.init_loop:
+			TAX
+			STY local_level,X
 			CLC
-			ADC #GFX_STACK_SIZE
-			DEY
-			BNE .rs_loop
-		STX test_temp
-		TAX
-		TXS
-		LDX test_temp
+			ADC #locals_size
+			INY
+			CPY #8
+			BNE .init_loop
+		LDX #program_stacks
 		
-		;Background and ball colors
-		LDY local_level,X
-		LDA gfx_test2_bg_colors,Y
-		STA bg_color,X
-		LDA gfx_test2_ball_colors,Y
-		STA ball_color,X
+		;Emulation starts here
+		.emu_start:
 		
 		;Calculate screen coordinates
 		LDA local_level,X
@@ -86,13 +62,13 @@
 		TAY
 		LDA #0
 		CPY #0
-		.color_loop:
-			BEQ .color_done
+		.coord_loop:
+			BEQ .coord_done
 			CLC
 			ADC #FRAME_WIDTH
 			DEY
-			BRA .color_loop
-		.color_done:
+			BRA .coord_loop
+		.coord_done:
 		STA origin,X
 		LDY #$40
 		LDA local_level,X
@@ -103,7 +79,13 @@
 		.y_coord_done:
 		STY origin_hi,X
 		
+		;Initialize ball
+		LDA #16
+		STA ball_X,X
+		STA ball_Y,X
+		
 		;Draw background
+		STA color_temp,X		
 		LDA #FRAME_HEIGHT
 		STA counter1,X
 		LDA origin_hi,X
@@ -111,9 +93,10 @@
 		.draw_loop_outer:
 			LDA origin,X
 			STA gfx_ptr,X
+			LDY local_level,X
+			LDA gfx_test2_bg_colors,Y
 			LDY #FRAME_WIDTH
 			.draw_loop:
-				LDA bg_color,X
 				STA (gfx_ptr,X)
 				INC gfx_ptr,X
 				DEY
@@ -122,29 +105,74 @@
 			DEC counter1,X
 			BNE .draw_loop_outer
 		
-		;Advance to next background drawing
+		halt
+		
+		;DEBUG - non-emulation version only
 		LDA test_level
 		INC
 		CMP #8
 		STA test_level
-		BEQ .begin_ball_drawing
-		JMP .draw_bg
+		BEQ .bg_done
+		TXA
+		CLC
+		ADC #locals_size
+		TAX
+		JMP .emu_start
+		.bg_done:
+		LDX #program_stacks
 		
 		;Background drawing done - start drawing ball animations
-		.begin_ball_drawing:
-		;STZ test_level
 		.draw_ball:
-		
-			halt
-		
-			;Save SP
-			STX test_temp
-			TSX
-			TXA
-			LDX test_temp
-			STA SP,X
 			
-			;Calculate next frame's data stack pointer
+			halt
+			
+			;Erase ball
+			LDA origin,X
+			CLC
+			ADC ball_X,X
+			STA gfx_ptr
+			LDA origin_hi,X
+			;CLC - above should never overflow
+			ADC ball_Y,X
+			STA gfx_ptr_hi,X
+			LDY local_level,X
+			LDA gfx_test2_bg_colors,Y
+			STA (gfx_ptr,X)
+			
+			;Calculate new ball position
+			LDA ball_X,X
+			CMP #FRAME_WIDTH/2
+			BCC .ball_up
+			.ball_down:
+				INC ball_Y,X
+				INC gfx_ptr_hi,X
+				BRA .ball_vert_done
+			.ball_up:
+				DEC ball_Y,X
+				DEC gfx_ptr_hi,X
+			.ball_vert_done:
+			
+			LDA ball_Y,X
+			CMP #FRAME_HEIGHT/2
+			BCC .ball_right
+			.ball_left:
+				DEC ball_X,X
+				DEC gfx_ptr,X
+				BRA .ball_horiz_done
+			.ball_right:
+				INC ball_X,X
+				INC gfx_ptr,X
+			.ball_horiz_done:
+			
+			;Draw ball
+			LDY local_level,X
+			LDA gfx_test2_ball_colors,Y
+			STA (gfx_ptr,X)
+			
+			;Next frame
+			JMP .draw_ball
+			
+			;DEBUG - non-emulation version only
 			LDA local_level,X
 			CMP #7
 			BNE .increase_stack
@@ -156,22 +184,8 @@
 				ADC #locals_size
 			.stack_done:
 			TAX
-			STA test_temp
 			
-			halt
 			
-			;Load new SP
-			LDA SP,X
-			TAX
-			TXS
-			LDX test_temp
-			
-			;Draw ball
-			LDA ball_color,X
-			STA (origin,X)
-			
-			;Next frame
-			JMP .draw_ball
 			
 	gfx_test2_bg_colors:
 		FCB $01		;Red
