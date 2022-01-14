@@ -23,7 +23,7 @@
 	gfx_test2:
 		DEFINE FRAME_WIDTH, 64
 		DEFINE FRAME_HEIGHT, 64
-		DEFINE BALL_SIZE, 8
+		DEFINE BALL_SIZE, 9
 		
 		;Just declarations - no code generated
 		LOCALS_START 0
@@ -169,10 +169,8 @@
 			LDA #' '
 			STA DEBUG
 			
-			LDA ball_Y,X
-			STA counter1,X
 			LDA ball_X,X
-			CMP #(FRAME_WIDTH-BALL_SIZE)/2-1
+			CMP #(FRAME_WIDTH-BALL_SIZE)/2+1
 			BCC .ball_up
 			.ball_down:
 				INC ball_Y,X
@@ -183,8 +181,8 @@
 				DEC ball_ptr_hi,X
 			.ball_vert_done:
 			
-			LDA counter1,X
-			CMP #(FRAME_HEIGHT-BALL_SIZE)/2-1
+			LDA ball_Y,X
+			CMP #(FRAME_HEIGHT-BALL_SIZE)/2+1
 			BCC .ball_right
 			.ball_left:
 				DEC ball_X,X
@@ -248,7 +246,8 @@
 			SBC #BALL_SIZE
 			STA ball_ptr_hi,X
 						
-			halt
+			
+			
 						
 			;Next frame
 			JMP .draw_ball
@@ -289,21 +288,21 @@
 		FCB $2A		;Light gray
 			
 	gfx_test2_ball_image:
-		FCB	$00, $00, $FF, $FF, $FF, $FF, $00, $00
-		FCB $00, $FF, $01, $01, $01, $01, $FF, $00
-		FCB $FF, $01, $01, $01, $FF, $01, $01, $FF
-		FCB $FF, $01, $01, $01, $01, $FF, $01, $FF
-		FCB $FF, $01, $01, $01, $01, $01, $01, $FF
-		FCB $FF, $01, $01, $01, $01, $01, $01, $FF
-		FCB $00, $FF, $01, $01, $01, $01, $FF, $00	
-		FCB	$00, $00, $FF, $FF, $FF, $FF, $00, $00	
+		FCB	$00, $00, $FF, $FF,$FF, $FF, $FF, $00, $00
+		FCB $00, $FF, $01, $01,$01, $01, $01, $FF, $00
+		FCB $FF, $01, $01, $01,$01, $FF, $01, $01, $FF
+		FCB $FF, $01, $01, $01,$01, $01, $FF, $01, $FF
+		FCB $FF, $01, $01, $01,$01, $01, $01, $01, $FF
+		FCB $FF, $01, $01, $01,$01, $01, $01, $01, $FF
+		FCB $FF, $01, $01, $01,$01, $01, $01, $01, $FF
+		FCB $00, $FF, $01, $01,$01, $01, $01, $FF, $00	
+		FCB	$00, $00, $FF, $FF,$FF, $FF, $FF, $00, $00	
 		
 	gfx_test2_ball_start_X:
-		FCB 13
+		FCB 0
 	
 	gfx_test2_ball_start_Y:
-		FCB 13
-			
+		FCB 28			
 			
 	
 		
