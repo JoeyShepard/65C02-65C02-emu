@@ -23,20 +23,21 @@
 	gfx_test2:
 		DEFINE FRAME_WIDTH, 64
 		DEFINE FRAME_HEIGHT, 64
-		DEFINE X_COUNT, 4
-		DEFINE GFX_STACK_SIZE, 8
+		DEFINE BALL_SIZE, 8
 		
 		;Just declarations - no code generated
 		LOCALS_START 0
 			LOCAL local_level
-			LOCAL color_temp
 			LOCAL origin
 			LOCAL origin_hi
 			LOCAL gfx_ptr
 			LOCAL gfx_ptr_hi
 			LOCAL counter1
+			LOCAL counter2
 			LOCAL ball_X
 			LOCAL ball_Y
+			LOCAL ball_ptr
+			LOCAL ball_ptr_hi
 		LOCALS_END
 		
 		;Initialize all threads - runs once before any emulation loads
@@ -80,12 +81,20 @@
 		STY origin_hi,X
 		
 		;Initialize ball
-		LDA #16
+		LDY #local_level
+		LDA gfx_test2_ball_start_X,Y
 		STA ball_X,X
-		STA ball_Y,X
+		CLC
+		ADC origin,X
+		STA ball_ptr,X
 		
-		;Draw background
-		STA color_temp,X		
+		LDA gfx_test2_ball_start_Y,Y
+		STA ball_Y,X
+		CLC
+		ADC origin_hi,X
+		STA ball_ptr_hi,X
+		
+		;Draw background		
 		LDA #FRAME_HEIGHT
 		STA counter1,X
 		LDA origin_hi,X
@@ -105,8 +114,6 @@
 			DEC counter1,X
 			BNE .draw_loop_outer
 		
-		halt
-		
 		;DEBUG - non-emulation version only
 		LDA test_level
 		INC
@@ -123,52 +130,126 @@
 		
 		;Background drawing done - start drawing ball animations
 		.draw_ball:
-			
-			halt
-			
+
 			;Erase ball
-			LDA origin,X
-			CLC
-			ADC ball_X,X
-			STA gfx_ptr
-			LDA origin_hi,X
-			;CLC - above should never overflow
-			ADC ball_Y,X
-			STA gfx_ptr_hi,X
-			LDY local_level,X
-			LDA gfx_test2_bg_colors,Y
-			STA (gfx_ptr,X)
-			
+			LDA #BALL_SIZE
+			STA counter1,X
+			.erase_loop_outer:
+				LDY local_level,X
+				LDA gfx_test2_bg_colors,Y
+				LDY #BALL_SIZE
+				.erase_loop:
+					STA (ball_ptr,X)
+					INC ball_ptr,X
+					DEY
+					BNE .erase_loop
+				LDA ball_ptr,X
+				SEC
+				SBC #BALL_SIZE
+				STA ball_ptr,X
+				INC ball_ptr_hi,X
+				DEC counter1,X
+				BNE .erase_loop_outer
+			LDA ball_ptr_hi,X
+			SEC
+			SBC #BALL_SIZE
+			STA ball_ptr_hi,X
+						
 			;Calculate new ball position
 			LDA ball_X,X
-			CMP #FRAME_WIDTH/2
+			STA DEBUG_DEC
+			LDA #','
+			STA DEBUG 
+			LDA ball_Y,X
+			STA DEBUG_DEC
+			LDA #' '
+			STA DEBUG
+			LDA #'-'
+			STA DEBUG
+			LDA #' '
+			STA DEBUG
+			
+			LDA ball_Y,X
+			STA counter1,X
+			LDA ball_X,X
+			CMP #(FRAME_WIDTH-BALL_SIZE)/2-1
 			BCC .ball_up
 			.ball_down:
 				INC ball_Y,X
-				INC gfx_ptr_hi,X
+				INC ball_ptr_hi,X
 				BRA .ball_vert_done
 			.ball_up:
 				DEC ball_Y,X
-				DEC gfx_ptr_hi,X
+				DEC ball_ptr_hi,X
 			.ball_vert_done:
 			
-			LDA ball_Y,X
-			CMP #FRAME_HEIGHT/2
+			LDA counter1,X
+			CMP #(FRAME_HEIGHT-BALL_SIZE)/2-1
 			BCC .ball_right
 			.ball_left:
 				DEC ball_X,X
-				DEC gfx_ptr,X
+				DEC ball_ptr,X
 				BRA .ball_horiz_done
 			.ball_right:
 				INC ball_X,X
-				INC gfx_ptr,X
+				INC ball_ptr,X
 			.ball_horiz_done:
 			
-			;Draw ball
-			LDY local_level,X
-			LDA gfx_test2_ball_colors,Y
-			STA (gfx_ptr,X)
+			LDA ball_X,X
+			STA DEBUG_DEC
+			LDA #','
+			STA DEBUG 
+			LDA ball_Y,X
+			STA DEBUG_DEC
+			LDA #10
+			STA DEBUG
 			
+			;Draw ball
+			LDA #lo(gfx_test2_ball_image)
+			STA gfx_ptr,X
+			LDA #hi(gfx_test2_ball_image)
+			STA gfx_ptr_hi,X
+			LDA #BALL_SIZE
+			STA counter1,X
+			LDY local_level,X
+			.ball_loop_outer:
+				LDA #BALL_SIZE
+				STA counter2,X	
+				.ball_loop:
+					LDA (gfx_ptr,X)
+					BEQ .transparent
+					BMI .white
+					.fg_color:
+						LDA gfx_test2_ball_colors,Y
+						BRA .color_done
+					.white:
+						LDA #$3F
+					.color_done:
+					STA (ball_ptr,X)
+					.transparent:
+					INC gfx_ptr,X
+					BNE .skip
+						INC gfx_ptr_hi,X
+					.skip:
+					INC ball_ptr,X
+					DEC counter2,X
+					BNE .ball_loop
+				LDA ball_ptr,X
+				SEC
+				SBC #BALL_SIZE
+				STA ball_ptr,X
+				INC ball_ptr_hi,X
+				DEC counter1,X
+				BNE .ball_loop_outer
+			
+			;Reset ball_ptr after drawing
+			LDA ball_ptr_hi,X
+			SEC
+			SBC #BALL_SIZE
+			STA ball_ptr_hi,X
+						
+			halt
+						
 			;Next frame
 			JMP .draw_ball
 			
@@ -207,9 +288,21 @@
 		FCB $3F		;White
 		FCB $2A		;Light gray
 			
-			
-			
-			
+	gfx_test2_ball_image:
+		FCB	$00, $00, $FF, $FF, $FF, $FF, $00, $00
+		FCB $00, $FF, $01, $01, $01, $01, $FF, $00
+		FCB $FF, $01, $01, $01, $FF, $01, $01, $FF
+		FCB $FF, $01, $01, $01, $01, $FF, $01, $FF
+		FCB $FF, $01, $01, $01, $01, $01, $01, $FF
+		FCB $FF, $01, $01, $01, $01, $01, $01, $FF
+		FCB $00, $FF, $01, $01, $01, $01, $FF, $00	
+		FCB	$00, $00, $FF, $FF, $FF, $FF, $00, $00	
+		
+	gfx_test2_ball_start_X:
+		FCB 13
+	
+	gfx_test2_ball_start_Y:
+		FCB 13
 			
 			
 	
