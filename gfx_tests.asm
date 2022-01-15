@@ -32,8 +32,8 @@
 			LOCAL origin_hi
 			LOCAL gfx_ptr
 			LOCAL gfx_ptr_hi
-			LOCAL counter1
-			LOCAL counter2
+			LOCAL temp1
+			LOCAL temp2
 			LOCAL ball_X
 			LOCAL ball_Y
 			LOCAL ball_ptr
@@ -96,7 +96,7 @@
 		
 		;Draw background		
 		LDA #FRAME_HEIGHT
-		STA counter1,X
+		STA temp1,X
 		LDA origin_hi,X
 		STA gfx_ptr_hi,X
 		.draw_loop_outer:
@@ -111,7 +111,7 @@
 				DEY
 				BNE .draw_loop
 			INC gfx_ptr_hi,X
-			DEC counter1,X
+			DEC temp1,X
 			BNE .draw_loop_outer
 		
 		;DEBUG - non-emulation version only
@@ -133,7 +133,7 @@
 
 			;Erase ball
 			LDA #BALL_SIZE
-			STA counter1,X
+			STA temp1,X
 			.erase_loop_outer:
 				LDY local_level,X
 				LDA gfx_test2_bg_colors,Y
@@ -148,7 +148,7 @@
 				SBC #BALL_SIZE
 				STA ball_ptr,X
 				INC ball_ptr_hi,X
-				DEC counter1,X
+				DEC temp1,X
 				BNE .erase_loop_outer
 			LDA ball_ptr_hi,X
 			SEC
@@ -156,19 +156,6 @@
 			STA ball_ptr_hi,X
 						
 			;Calculate new ball position
-			LDA ball_X,X
-			STA DEBUG_DEC
-			LDA #','
-			STA DEBUG 
-			LDA ball_Y,X
-			STA DEBUG_DEC
-			LDA #' '
-			STA DEBUG
-			LDA #'-'
-			STA DEBUG
-			LDA #' '
-			STA DEBUG
-			
 			LDA ball_X,X
 			CMP #(FRAME_WIDTH-BALL_SIZE)/2+1
 			BCC .ball_up
@@ -193,26 +180,17 @@
 				INC ball_ptr,X
 			.ball_horiz_done:
 			
-			LDA ball_X,X
-			STA DEBUG_DEC
-			LDA #','
-			STA DEBUG 
-			LDA ball_Y,X
-			STA DEBUG_DEC
-			LDA #10
-			STA DEBUG
-			
 			;Draw ball
 			LDA #lo(gfx_test2_ball_image)
 			STA gfx_ptr,X
 			LDA #hi(gfx_test2_ball_image)
 			STA gfx_ptr_hi,X
 			LDA #BALL_SIZE
-			STA counter1,X
+			STA temp1,X
 			LDY local_level,X
 			.ball_loop_outer:
 				LDA #BALL_SIZE
-				STA counter2,X	
+				STA temp2,X	
 				.ball_loop:
 					LDA (gfx_ptr,X)
 					BEQ .transparent
@@ -230,14 +208,14 @@
 						INC gfx_ptr_hi,X
 					.skip:
 					INC ball_ptr,X
-					DEC counter2,X
+					DEC temp2,X
 					BNE .ball_loop
 				LDA ball_ptr,X
 				SEC
 				SBC #BALL_SIZE
 				STA ball_ptr,X
 				INC ball_ptr_hi,X
-				DEC counter1,X
+				DEC temp1,X
 				BNE .ball_loop_outer
 			
 			;Reset ball_ptr after drawing
@@ -245,9 +223,14 @@
 			SEC
 			SBC #BALL_SIZE
 			STA ball_ptr_hi,X
-						
-			
-			
+
+			;Delay ~4 ms so frame is visible
+			LDA TIMER_MS4
+			STA temp1,X
+			.timer_loop:
+				LDA TIMER_MS4
+				CMP temp1,X
+				BEQ .timer_loop
 						
 			;Next frame
 			JMP .draw_ball
