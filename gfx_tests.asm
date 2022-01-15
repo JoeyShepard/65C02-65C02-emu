@@ -81,7 +81,7 @@
 		STY origin_hi,X
 		
 		;Initialize ball
-		LDY #local_level
+		LDY local_level,X
 		LDA gfx_test2_ball_start_X,Y
 		STA ball_X,X
 		CLC
@@ -223,17 +223,27 @@
 			SEC
 			SBC #BALL_SIZE
 			STA ball_ptr_hi,X
+			
+			;LDA local_level,X
+			;BNE .no_debug
+			;	LDA ball_X,X
+			;	STA DEBUG_DEC
+			;	LDA #' '
+			;	STA DEBUG
+			;	LDA ball_Y,X
+			;	STA DEBUG_DEC
+			;	LDA #10
+			;	STA DEBUG
+			;.no_debug:
+			
 
-			;Delay ~4 ms so frame is visible
+			;Delay ~4 ms - otherwise frames way too fast
 			LDA TIMER_MS4
 			STA temp1,X
 			.timer_loop:
 				LDA TIMER_MS4
 				CMP temp1,X
 				BEQ .timer_loop
-						
-			;Next frame
-			JMP .draw_ball
 			
 			;DEBUG - non-emulation version only
 			LDA local_level,X
@@ -247,7 +257,9 @@
 				ADC #locals_size
 			.stack_done:
 			TAX
-			
+						
+			;Next frame
+			JMP .draw_ball
 			
 			
 	gfx_test2_bg_colors:
@@ -281,12 +293,45 @@
 		FCB $00, $FF, $01, $01,$01, $01, $01, $FF, $00	
 		FCB	$00, $00, $FF, $FF,$FF, $FF, $FF, $00, $00	
 		
+	;Works but looks strange - balls meet on horizontal line
+	;gfx_test2_ball_start_X:
+	;	FCB 0
+	;	FCB 14
+	;	FCB 28
+	;	FCB 42
+	;	FCB 54
+	;	FCB 42
+	;	FCB 28
+	;	FCB 14
+	;	
+	;gfx_test2_ball_start_Y:
+	;	FCB 28
+	;	FCB 14
+	;	FCB 0
+	;	FCB 14
+	;	FCB 28
+	;	FCB 40
+	;	FCB 54
+	;	FCB 42
+	
 	gfx_test2_ball_start_X:
 		FCB 0
-	
+		FCB 4
+		FCB 8
+		FCB 12
+		FCB 16
+		FCB 20
+		FCB 24
+		FCB 28
+		
 	gfx_test2_ball_start_Y:
-		FCB 28			
-			
-	
+		FCB 28
+		FCB 24
+		FCB 20
+		FCB 16
+		FCB 12
+		FCB 8
+		FCB 4
+		FCB 0
 		
 		
