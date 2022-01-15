@@ -1,39 +1,50 @@
-;Zero page variables
-ZP_START MACRO ptr
-zp_begin set ptr
-zp_address set ptr
-	ENDM
-			
-ZP MACRO var
-var equ zp_address
-zp_address set zp_address+1
-	ENDM
-	
-ZP_END MACRO
-zp_end set zp_address
-zp_size set zp_address-zp_begin
-	ENDM
-	
-;Local variables - each emu level gets a copy
-LOCALS_START MACRO ptr
-locals_begin set ptr
-local_address set ptr
-	ENDM
-
-LOCAL MACRO var
-var equ local_address
-local_address set local_address+1
-	ENDM
-
-LOCALS_END MACRO
-locals_end set local_address
-locals_size set locals_end-locals_begin
-	ENDM
-
 ;Defining constants - looks better than not allowing indentation
 DEFINE MACRO symbol, value
 symbol set value
 	ENDM
+
+DEFINE_EQU MACRO symbol, value
+symbol equ value
+	ENDM
+
+;Zero page variables
+ZP_START MACRO ptr
+	DEFINE zp_begin, ptr
+	DEFINE zp_address, ptr
+	ENDM
+			
+ZP MACRO var
+	DEFINE var, zp_address
+	DEFINE zp_address, zp_address+1
+	ENDM
+	
+ZP_END MACRO
+	DEFINE zp_end, zp_address
+	DEFINE zp_size, zp_address-zp_begin
+	ENDM
+	
+;Local variables - each emu level gets a copy
+	DEFINE locals_block_counter, 0
+
+LOCALS_START MACRO ptr
+	DEFINE locals_begin, ptr
+	DEFINE local_address, ptr
+	ENDM
+
+LOCAL MACRO var
+	DEFINE var, local_address
+	DEFINE local_address, local_address+1
+	ENDM
+
+LOCALS_END MACRO
+	DEFINE locals_end, local_address
+	DEFINE locals_size, locals_end-locals_begin
+	DEFINE locals_block_counter, locals_block_counter+1
+	DEFINE temp, "\{locals_block_counter}"
+	DEFINE_EQU locals_end_{temp}, *
+	ENDM
+
+
 
 ;Advance emulated PC
 PC_NEXT MACRO
