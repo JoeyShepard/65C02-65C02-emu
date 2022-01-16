@@ -4,9 +4,15 @@
 	;Set up emulator then execute tests for all emulated instructions
 	test_prog:
 		
+		;Make sure binary NOT compiled with parallel emulation
+		IF PARALLEL_EMU = TRUE
+			halt
+			JMP *
+		ENDIF
+		
 		;Setup before any emulator level loads
 		STZ global_emu_level
-		LDX #EMU_STACK_SIZE-1
+		LDX #EMULATOR_STACK_START+EMULATOR_STACK_SIZE-1
 		TXS
 			
 		;Keep emulated flags on stack
@@ -34,15 +40,15 @@
 			BNE .loop
 		.loop_done:
 		TAX
-		STA emu_data_SP,X
+		;STA emu_data_SP,X
 		STY emu_level,X
 		
 		;Set up emulated SP
-		LDA #EMU_STACK_SIZE-1	;Level 0 uses first stack chunk
+		LDA #EMULATED_STACK_START+EMULATED_STACK_SIZE-1	;Level 0 uses first stack chunk
 		INY						;emu_level+1
 		CLC
 		.loop_sp:
-			ADC #EMU_STACK_SIZE
+			ADC #EMULATED_STACK_SIZE
 			DEY
 			BNE .loop_sp
 		.loop_sp_done:
