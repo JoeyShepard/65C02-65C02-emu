@@ -5,12 +5,17 @@ for /f %%i in ('time /T') do set datetime=%%i
 echo [%datetime%]
 REM echo.
 
-echo Generating jump table..
+echo Generating jump table...
 jump-table.py
+move instructions.asm src >nul
+move jump-table.asm src >nul
 
 echo Assembling...
-..\..\..\AS\bin\asw main.asm -L -U -g -q -cpu 65C02 > asm.txt
+..\..\..\AS\bin\asw src\main.asm -L -U -g -q -cpu 65C02 > asm.txt
 python "remove escape.py" asm.txt
+move src\*.lst . >nul
+move src\*.map . >nul
+move src\*.p . >nul
 
 echo Filtering listing...
 python "listing filter.py" main.lst filtered.lst

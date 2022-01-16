@@ -1089,5 +1089,7 @@
 				CMP temp1,X
 				BEQ .timer_loop
 						
+			halt
+						
 			;Next frame
 			JMP .draw_ball

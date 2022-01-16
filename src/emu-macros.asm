@@ -115,7 +115,7 @@ BRANCH_MACRO MACRO
 	STA emu_PC,X
 	TYA
 	ADC emu_PC_hi,X
-	STA emu_PC_hi
+	STA emu_PC_hi,X
 	ENDM
 	
 OP_STEP MACRO op, stepname	
@@ -570,7 +570,7 @@ NEXT_MACRO MACRO
 				TXS
 				LDX global_temp_X
 			.level_done:
-			
+						
 		ENDIF
 		
 		LDA (emu_PC,X)
@@ -579,38 +579,4 @@ NEXT_MACRO MACRO
 		STA emu_temp,X
 		LDA JUMP_TABLE_HI,Y
 		STA emu_temp+1,X
-		
-		;LDA global_emu_level
-		;BNE .continue
-		;	halt
-		;.continue:
-		
-		;LDA global_emu_level
-		;CMP #0
-		;;CMP #1
-		;BNE .no_debug
-		;	STA DEBUG_HEX
-		;	LDA #' '
-		;	STA DEBUG
-		;	LDA emu_PC_hi,X
-		;	STA DEBUG_HEX
-		;	LDA emu_PC,X
-		;	STA DEBUG_HEX
-		;	LDA #' '
-		;	STA DEBUG
-		;	LDA emu_A,X
-		;	STA DEBUG_HEX
-		;	LDA #' '
-		;	STA DEBUG
-		;	LDA emu_X,X
-		;	STA DEBUG_HEX
-		;	LDA #' '
-		;	STA DEBUG
-		;	LDA emu_Y,X
-		;	STA DEBUG_HEX
-		;	LDA #10
-		;	STA DEBUG
-		;	halt
-		;.no_debug:
-		
 		JMP (emu_temp,X)
