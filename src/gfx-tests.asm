@@ -884,9 +884,6 @@
 			CMP #8
 			BNE .emu_setup_loop
 		
-		;;Switch to last emulator thread - DOES NOT WORK!
-		;DEC global_emu_level
-		
 		;Switch to first emulator thread
 		STZ global_emu_level
 		LDX host_SP
@@ -1089,7 +1086,111 @@
 				CMP temp1,X
 				BEQ .timer_loop
 						
-			halt
-						
 			;Next frame
 			JMP .draw_ball
+			
+			
+			
+	;Black screen with one blinking white pixel in middle of screen - nested emulation
+	gfx_test6:
+	
+		DEFINE SCREEN_BEGIN, 	$4000
+		DEFINE SCREEN_WIDTH, 	256
+		DEFINE SCREEN_HEIGHT, 	128
+		DEFINE CENTER_SCREEN, 	SCREEN_BEGIN+SCREEN_HEIGHT/2*SCREEN_WIDTH-SCREEN_WIDTH/2
+		DEFINE WHITE,			$3F
+		DEFINE DARK_GRAY,		$15
+		;Nested emulation levels
+		DEFINE EMU_COUNT,		2
+		
+		;Make sure binary NOT compiled with parallel emulation
+		IF PARALLEL_EMU = TRUE
+			halt
+			JMP *
+		ENDIF
+		
+		;Initialize emulator
+		STZ global_emu_level
+		
+		;Emulation starts here - falls through also
+		.emu_start:
+		
+			;Check emulation nesting level
+			LDA global_emu_level
+			CMP #EMU_COUNT+1
+			BNE .emulate
+				JMP .blink
+			.emulate:
+			
+			;Debug
+			LDA global_emu_level
+			STA DEBUG_DEC
+			LDA #' '
+			STA DEBUG
+			
+			;Set up stacks
+			LDA global_emu_level
+			BNE .not_zero
+				STZ global_temp_X
+				LDA #EMULATOR_STACK_START+EMULATOR_STACK_SIZE-1
+				STA global_temp_SP
+			.not_zero:
+		
+			;Set up emulator variables
+			LDX global_temp_X
+			LDA global_emu_level
+			STA emu_level,X
+			STZ emu_ZP_hi,X
+			LDA #1
+			STA emu_SP_hi,X
+			LDA #lo(.emu_start)
+			STA emu_PC,X
+			LDA #hi(.emu_start)
+			STA emu_PC_hi,X
+			
+			;Keep emulated flags on stack
+			LDX global_temp_SP
+			TXS
+			SEI
+			CLD
+			PHP
+			LDX global_temp_X
+			
+			;Increase stack pointers for next emulator
+			LDA global_temp_X
+			CLC
+			ADC #emu_locals_size
+			STA global_temp_X
+			
+			LDA global_temp_SP
+			CLC
+			ADC #EMULATOR_STACK_SIZE
+			STA global_temp_SP
+			
+			INC global_emu_level
+		
+			LDA global_emu_level
+			STA DEBUG_DEC
+			LDA #10
+			STA DEBUG
+		
+			;Jump into emulation and don't return
+			NEXT_MACRO
+		
+		;Deepest nested emulator runs this
+		.blink:		
+			LDA #WHITE
+			LDY #DARK_GRAY
+			.main:
+				halt
+				STA CENTER_SCREEN
+				halt
+				STY CENTER_SCREEN
+				JMP .main
+			
+		
+		
+		
+		
+		
+		

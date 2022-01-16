@@ -219,7 +219,7 @@ OP_STEP MACRO op, stepname
 			inc emu_temp_hi
 		.skip:
 		LDA (emu_temp,X)
-		STA emu_PC_hi
+		STA emu_PC_hi,X
 	CASE "JMP_IAX"
 		;Custom address loader
 		PC_NEXT
@@ -235,10 +235,10 @@ OP_STEP MACRO op, stepname
 		STA emu_PC,X
 		INC emu_temp,X
 		BNE .skip
-			inc emu_temp_hi
+			inc emu_temp_hi,X
 		.skip:
 		LDA (emu_temp,X)
-		STA emu_PC_hi
+		STA emu_PC_hi,X
 	CASE "JSR_ABS"
 		;Custom address loader
 		PC_NEXT
@@ -351,15 +351,15 @@ OP_STEP MACRO op, stepname
 	CASE "RTS_IMP"
 		INC emu_SP,X
 		LDA (emu_SP,X)
-		STA emu_PC_hi
+		STA emu_PC_hi,X
 		INC emu_SP,X
 		LDA (emu_SP,X)
-		;STA emu_PC
+		;STA emu_PC,X
 		
 		;Custom PC_NEXT - slightly faster
 		;INC emu_PC,X
 		INC
-		STA emu_PC
+		STA emu_PC,X
 		BNE .skip
 			INC emu_PC_hi,X
 		.skip:

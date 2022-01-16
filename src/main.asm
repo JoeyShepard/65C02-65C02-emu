@@ -30,8 +30,8 @@
 	DEFINE EMULATED_STACK_SIZE,		8
 	DEFINE EMULATOR_STACK_START,	0
 	DEFINE EMULATED_STACK_START,	$80
-	;DEFINE PARALLEL_EMU,			FALSE	;test_prog, gfx_test4
-	DEFINE PARALLEL_EMU,			TRUE	;gfx_test5
+	DEFINE PARALLEL_EMU,			FALSE	;test_prog, gfx_test4, gfx_test6
+	;DEFINE PARALLEL_EMU,			TRUE	;gfx_test5
 
 	;Zero page variables - shared between emu levels
 	ZP_START $80
@@ -84,7 +84,8 @@
 	;JMP gfx_test2
 	;JMP gfx_test3
 	;JMP gfx_test4
-	JMP gfx_test5	;not working yet
+	;JMP gfx_test5
+	JMP gfx_test6
 	
 	
 	;Included files
