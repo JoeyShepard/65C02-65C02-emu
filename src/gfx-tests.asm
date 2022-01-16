@@ -1101,7 +1101,7 @@
 		DEFINE WHITE,			$3F
 		DEFINE DARK_GRAY,		$15
 		;Nested emulation levels
-		DEFINE EMU_COUNT,		2
+		DEFINE EMU_COUNT,		4
 		
 		;Make sure binary NOT compiled with parallel emulation
 		IF PARALLEL_EMU = TRUE
@@ -1122,11 +1122,11 @@
 				JMP .blink
 			.emulate:
 			
-			;Debug
-			LDA global_emu_level
-			STA DEBUG_DEC
-			LDA #' '
-			STA DEBUG
+			;	;Debug
+			;	LDA global_emu_level
+			;	STA DEBUG_DEC
+			;	LDA #' '
+			;	STA DEBUG
 			
 			;Set up stacks
 			LDA global_emu_level
@@ -1166,13 +1166,13 @@
 			CLC
 			ADC #EMULATOR_STACK_SIZE
 			STA global_temp_SP
-			
 			INC global_emu_level
 		
-			LDA global_emu_level
-			STA DEBUG_DEC
-			LDA #10
-			STA DEBUG
+			;	;Debug
+			;	LDA global_emu_level
+			;	STA DEBUG_DEC
+			;	LDA #10
+			;	STA DEBUG
 		
 			;Jump into emulation and don't return
 			NEXT_MACRO
@@ -1182,9 +1182,9 @@
 			LDA #WHITE
 			LDY #DARK_GRAY
 			.main:
-				halt
+				;halt
 				STA CENTER_SCREEN
-				halt
+				;halt
 				STY CENTER_SCREEN
 				JMP .main
 			
