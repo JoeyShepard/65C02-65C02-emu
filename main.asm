@@ -26,6 +26,7 @@
 	;65C02 emulator constants
 	DEFINE MAX_EMU_LEVEL,	5
 	DEFINE EMU_STACK_SIZE,	16
+	DEFINE PARALLEL_EMU,	TRUE
 
 	;Zero page variables - shared between emu levels
 	ZP_START $80
@@ -62,80 +63,21 @@
 	;Debug - file sizes
 	JSR DebugFileSizes
 	
-	;JavaScript emulator setup
+	;JavaScript emulator setup - graphics memory
 	LDA #BANK_GFX_RAM1
 	STA RAM_BANK2
 	LDA #BANK_GFX_RAM2
 	STA RAM_BANK3
 	
-	;Graphical test pattern outside of emu if needed
-	;JMP gfx_test3
+	;Tests for all emulated instructions
+	JMP test_prog
 	
-	;Setup before any emulator level loads
-	STZ global_emu_level
-	LDX #EMU_STACK_SIZE-1
-	TXS
+	;Graphical test patterns to verify emulator
+	;JMP gfx_test1
+	;JMP gfx_test2
+	JMP gfx_test3
 	
-	;Setup for each emulator level
-	emu_begin:
 	
-		;Keep emulated flags on stack
-		SEI
-		CLD
-		PHP
-	
-		;Calculate local emu level
-		LDA global_emu_level
-		CMP #MAX_EMU_LEVEL
-		BNE .level_good
-			JMP ExitEmu
-		.level_good:
-		INC global_emu_level
-		
-		;Calculate ZP data stack pointer
-		TAY
-		TAX
-		BEQ .loop_done
-		LDA #0
-		CLC
-		.loop:
-			ADC #locals_size
-			DEX
-			BNE .loop
-		.loop_done:
-		TAX
-		STA emu_data_SP,X
-		STY emu_level,X
-		
-		;Set up emulated SP
-		LDA #EMU_STACK_SIZE-1	;Level 0 uses first stack chunk
-		INY						;emu_level+1
-		CLC
-		.loop_sp:
-			ADC #EMU_STACK_SIZE
-			DEY
-			BNE .loop_sp
-		.loop_sp_done:
-		STA emu_SP,X
-		LDA #1
-		STA emu_SP_hi,X
-		
-		;Load emulated PC
-		LDA #lo(test_prog)
-		STA emu_PC,X
-		LDA #hi(test_prog)
-		STA emu_PC+1,X
-		
-		;Jump into emulation and don't return
-		NEXT_MACRO
-		
-		halt
-		JMP *
-
-	;Deepest emulation layer reached - stop nesting
-	ExitEmu:
-		halt
-		JMP *
 	
 	;Included files
 	include "instructions.asm"

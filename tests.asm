@@ -1,4 +1,74 @@
+;Tests for all emulated instructions
+;===================================
+	
+	;Set up emulator then execute tests for all emulated instructions
 	test_prog:
+		
+		;Setup before any emulator level loads
+		STZ global_emu_level
+		LDX #EMU_STACK_SIZE-1
+		TXS
+			
+		;Keep emulated flags on stack
+		SEI
+		CLD
+		PHP
+	
+		;Calculate local emu level
+		LDA global_emu_level
+		CMP #MAX_EMU_LEVEL
+		BNE .level_good
+			JMP ExitEmu
+		.level_good:
+		INC global_emu_level
+		
+		;Calculate ZP data stack pointer
+		TAY
+		TAX
+		BEQ .loop_done
+		LDA #0
+		CLC
+		.loop:
+			ADC #locals_size
+			DEX
+			BNE .loop
+		.loop_done:
+		TAX
+		STA emu_data_SP,X
+		STY emu_level,X
+		
+		;Set up emulated SP
+		LDA #EMU_STACK_SIZE-1	;Level 0 uses first stack chunk
+		INY						;emu_level+1
+		CLC
+		.loop_sp:
+			ADC #EMU_STACK_SIZE
+			DEY
+			BNE .loop_sp
+		.loop_sp_done:
+		STA emu_SP,X
+		LDA #1
+		STA emu_SP_hi,X
+		
+		;Load emulated PC
+		LDA #lo(instruction_tests)
+		STA emu_PC,X
+		LDA #hi(instruction_tests)
+		STA emu_PC+1,X
+		
+		;Jump into emulation and don't return
+		NEXT_MACRO
+		
+		halt
+		JMP *
+
+	;Deepest emulation layer reached - stop nesting
+	ExitEmu:
+		halt
+		JMP *
+		
+		
+	instruction_tests:
 		
 		;Implied
 		;=======
@@ -948,85 +1018,85 @@ NEWJUMP MACRO jump
 	ENDM
 		
 BRANCH_TEST MACRO br, jump, nojump
-		;Case where no branch should happen - ie CLC then BCS
-		NEWJUMP nojump
-		br branch_test1
-		LDA #'1'
+	;Case where no branch should happen - ie CLC then BCS
+	NEWJUMP nojump
+	br branch_test1
+	LDA #'1'
+	STA DEBUG
+	JMP branch_test_good
+	branch_test1:
+	JMP branch_test_failed
+	branch_test_good:
+	
+	;Positive branch offset
+	NEWJUMP jump
+	br branch_test2
+	JMP branch_test_failed
+	branch_test2:
+	LDA #'2'
+	STA DEBUG
+	
+	;Negative branch offset
+	JMP branch_test3
+	branch_test4:
+		LDA #'3'
 		STA DEBUG
-		JMP branch_test_good
-		branch_test1:
-		JMP branch_test_failed
-		branch_test_good:
-		
-		;Positive branch offset
-		NEWJUMP jump
-		br branch_test2
-		JMP branch_test_failed
-		branch_test2:
-		LDA #'2'
-		STA DEBUG
-		
-		;Negative branch offset
-		JMP branch_test3
-		branch_test4:
-			LDA #'3'
-			STA DEBUG
-			JMP branch_test5
-		branch_test3:
-		NEWJUMP jump
-		br branch_test4
-		JMP branch_test_failed
-		branch_test5:
-		LDA #' '
-		STA DEBUG
-		
-		ENDM
-		
-		BRANCH_TEST BCS, SEC, CLC 
-		BRANCH_TEST BCC, CLC, SEC 
-		BRANCH_TEST BVS, SEV, CLV		
-		BRANCH_TEST BVC, CLV, SEV
-		BRANCH_TEST BMI, SEN, CLN
-		BRANCH_TEST BPL, CLN, SEN
-		BRANCH_TEST BEQ, SEZ, CLZ
-		BRANCH_TEST BNE, CLZ, SEZ
-		
-		BRA bra_test1
-		JMP branch_test_failed
-		bra_test2:
-		LDA #'2'
-		STA DEBUG
-		BRA bra_test3
-		JMP branch_test_failed
-		bra_test1:
-		LDA #'1'
-		STA DEBUG
-		BRA bra_test2
-		JMP branch_test_failed
-		bra_test3:
-		LDA #10
-		STA DEBUG
-		
-		
-		
-		;BBS and BBR
-		;===========
-		
-		;Test
-		LDX #0
-		LDA #1
-		bbs_loop:
-			STA $E0,X
-			EOR #$FF
-			STA $E8,X
-			EOR #$FF
-			ASL
-			INX
-			CPX #8
-			BNE bbs_loop
-		STZ $F0
-		LDA #$FF
-		STA $F1
+		JMP branch_test5
+	branch_test3:
+	NEWJUMP jump
+	br branch_test4
+	JMP branch_test_failed
+	branch_test5:
+	LDA #' '
+	STA DEBUG
+	
+	ENDM
+	
+	BRANCH_TEST BCS, SEC, CLC 
+	BRANCH_TEST BCC, CLC, SEC 
+	BRANCH_TEST BVS, SEV, CLV		
+	BRANCH_TEST BVC, CLV, SEV
+	BRANCH_TEST BMI, SEN, CLN
+	BRANCH_TEST BPL, CLN, SEN
+	BRANCH_TEST BEQ, SEZ, CLZ
+	BRANCH_TEST BNE, CLZ, SEZ
+	
+	BRA bra_test1
+	JMP branch_test_failed
+	bra_test2:
+	LDA #'2'
+	STA DEBUG
+	BRA bra_test3
+	JMP branch_test_failed
+	bra_test1:
+	LDA #'1'
+	STA DEBUG
+	BRA bra_test2
+	JMP branch_test_failed
+	bra_test3:
+	LDA #10
+	STA DEBUG
+	
+	
+	
+	;BBS and BBR
+	;===========
+	
+	;Test
+	LDX #0
+	LDA #1
+	bbs_loop:
+		STA $E0,X
+		EOR #$FF
+		STA $E8,X
+		EOR #$FF
+		ASL
+		INX
+		CPX #8
+		BNE bbs_loop
+	STZ $F0
+	LDA #$FF
+	STA $F1
 		
 BBSTEST MACRO op, mem
 	;Branch not taken
@@ -1090,29 +1160,29 @@ BBRTEST MACRO op, mem
 	STA DEBUG
 	ENDM	
 	
-	BBSTEST BBS0, $E0
-	BBSTEST BBS1, $E1
-	BBSTEST BBS2, $E2
-	BBSTEST BBS3, $E3
-	BBSTEST BBS4, $E4
-	BBSTEST BBS5, $E5
-	BBSTEST BBS6, $E6
-	BBSTEST BBS7, $E7
-	
-	LDA #10
-	STA DEBUG
-	
-	BBRTEST BBR0, $E8
-	BBRTEST BBR1, $E9
-	BBRTEST BBR2, $EA
-	BBRTEST BBR3, $EB
-	BBRTEST BBR4, $EC
-	BBRTEST BBR5, $ED
-	BBRTEST BBR6, $EE
-	BBRTEST BBR7, $EF
-	
-	halt
+		BBSTEST BBS0, $E0
+		BBSTEST BBS1, $E1
+		BBSTEST BBS2, $E2
+		BBSTEST BBS3, $E3
+		BBSTEST BBS4, $E4
+		BBSTEST BBS5, $E5
+		BBSTEST BBS6, $E6
+		BBSTEST BBS7, $E7
 		
+		LDA #10
+		STA DEBUG
+		
+		BBRTEST BBR0, $E8
+		BBRTEST BBR1, $E9
+		BBRTEST BBR2, $EA
+		BBRTEST BBR3, $EB
+		BBRTEST BBR4, $EC
+		BBRTEST BBR5, $ED
+		BBRTEST BBR6, $EE
+		BBRTEST BBR7, $EF
+		
+		halt
+			
 		
 		
 		

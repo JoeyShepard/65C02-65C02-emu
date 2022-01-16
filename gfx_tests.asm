@@ -1,7 +1,7 @@
 ;Graphical tests to demonstrate emulator functionality
 ;=====================================================
 
-	;Simple pattern
+	;Simple pattern - make sure screen drawing works outside emulation
 	gfx_test1:
 		
 		LDY #0
@@ -19,8 +19,9 @@
 			INY
 			BNE .loop
 		
-	;Eight patterns on screen at once
-	;RUN OUTSIDE OF EMULATION!
+		
+		
+	;Eight patterns on screen at once - no emulation
 	gfx_test2:
 		DEFINE FRAME_WIDTH, 64
 		DEFINE FRAME_HEIGHT, 64
@@ -247,11 +248,82 @@
 			
 			;Next frame
 			JMP .draw_ball
+
+	;Works but looks strange - balls meet on horizontal line
+	;gfx_test2_ball_start_X:
+	;	FCB 0
+	;	FCB 14
+	;	FCB 28
+	;	FCB 42
+	;	FCB 54
+	;	FCB 42
+	;	FCB 28
+	;	FCB 14
+	;	
+	;gfx_test2_ball_start_Y:
+	;	FCB 28
+	;	FCB 14
+	;	FCB 0
+	;	FCB 14
+	;	FCB 28
+	;	FCB 40	;confirmed correct
+	;	FCB 54
+	;	FCB 42
+	
+	gfx_test2_ball_start_X:
+		FCB 0
+		FCB 4
+		FCB 8
+		FCB 12
+		FCB 16
+		FCB 20
+		FCB 24
+		FCB 28
+		
+	gfx_test2_ball_start_Y:
+		FCB 28
+		FCB 24
+		FCB 20
+		FCB 16
+		FCB 12
+		FCB 8
+		FCB 4
+		FCB 0
+	
+	gfx_test2_bg_colors:
+		FCB $01		;Dark red
+		FCB $04		;Dark green
+		FCB $10		;Dark blue
+		FCB $11		;Dark purple
+		FCB $14		;Dark cyan
+		FCB $05		;Dark yellow
+		FCB $15		;Dark gray
+		FCB $00		;Black
+		
+	gfx_test2_ball_colors:
+		FCB $03		;Red
+		FCB $0C		;Green
+		FCB $30		;Blue
+		FCB $33		;Purple
+		FCB $3C		;Cyan
+		FCB $0F		;Yellow
+		FCB $3F		;White
+		FCB $2A		;Light gray
+			
+	gfx_test2_ball_image:
+		FCB	$00, $00, $FF, $FF,$FF, $FF, $FF, $00, $00
+		FCB $00, $FF, $01, $01,$01, $01, $01, $FF, $00
+		FCB $FF, $01, $01, $01,$01, $FF, $01, $01, $FF
+		FCB $FF, $01, $01, $01,$01, $01, $FF, $01, $FF
+		FCB $FF, $01, $01, $01,$01, $01, $01, $01, $FF
+		FCB $FF, $01, $01, $01,$01, $01, $01, $01, $FF
+		FCB $FF, $01, $01, $01,$01, $01, $01, $01, $FF
+		FCB $00, $FF, $01, $01,$01, $01, $01, $FF, $00	
+		FCB	$00, $00, $FF, $FF,$FF, $FF, $FF, $00, $00	
 	
 	
 	
-	;Same as gfx_test2 - eight patterns on screen at once
-	;RUN INSIDE EMULATION! (or outside if one ball is enough)
+	;Same as gfx_test2 but only one of eight patterns - no emulation
 	gfx_test3:
 		DEFINE FRAME_WIDTH, 64
 		DEFINE FRAME_HEIGHT, 64
@@ -271,8 +343,6 @@
 			LOCAL ball_ptr
 			LOCAL ball_ptr_hi
 		LOCALS_END
-		
-		locals_end_0:
 		
 		;Initialize all threads - runs once before any emulation loads
 		STZ test_level
@@ -316,13 +386,13 @@
 		
 		;Initialize ball
 		LDY local_level,X
-		LDA gfx_test2_ball_start_X,Y
+		LDA gfx_test3_ball_start_X,Y
 		STA ball_X,X
 		CLC
 		ADC origin,X
 		STA ball_ptr,X
 		
-		LDA gfx_test2_ball_start_Y,Y
+		LDA gfx_test3_ball_start_Y,Y
 		STA ball_Y,X
 		CLC
 		ADC origin_hi,X
@@ -337,7 +407,7 @@
 			LDA origin,X
 			STA gfx_ptr,X
 			LDY local_level,X
-			LDA gfx_test2_bg_colors,Y
+			LDA gfx_test3_bg_colors,Y
 			LDY #FRAME_WIDTH
 			.draw_loop:
 				STA (gfx_ptr,X)
@@ -356,7 +426,7 @@
 			STA temp1,X
 			.erase_loop_outer:
 				LDY local_level,X
-				LDA gfx_test2_bg_colors,Y
+				LDA gfx_test3_bg_colors,Y
 				LDY #BALL_SIZE
 				.erase_loop:
 					STA (ball_ptr,X)
@@ -401,9 +471,9 @@
 			.ball_horiz_done:
 			
 			;Draw ball
-			LDA #lo(gfx_test2_ball_image)
+			LDA #lo(gfx_test3_ball_image)
 			STA gfx_ptr,X
-			LDA #hi(gfx_test2_ball_image)
+			LDA #hi(gfx_test3_ball_image)
 			STA gfx_ptr_hi,X
 			LDA #BALL_SIZE
 			STA temp1,X
@@ -416,7 +486,7 @@
 					BEQ .transparent
 					BMI .white
 					.fg_color:
-						LDA gfx_test2_ball_colors,Y
+						LDA gfx_test3_ball_colors,Y
 						BRA .color_done
 					.white:
 						LDA #$3F
@@ -454,19 +524,38 @@
 						
 			;Next frame
 			JMP .draw_ball
-			
-			
-	gfx_test2_bg_colors:
-		FCB $01		;Red
-		FCB $04		;Green
-		FCB $10		;Blue
-		FCB $11		;Purple
-		FCB $14		;Cyan
-		FCB $05		;Yellow
+	
+	gfx_test3_ball_start_X:
+		FCB 0
+		FCB 4
+		FCB 8
+		FCB 12
+		FCB 16
+		FCB 20
+		FCB 24
+		FCB 28
+		
+	gfx_test3_ball_start_Y:
+		FCB 28
+		FCB 24
+		FCB 20
+		FCB 16
+		FCB 12
+		FCB 8
+		FCB 4
+		FCB 0
+		
+	gfx_test3_bg_colors:
+		FCB $01		;Dark red
+		FCB $04		;Dark green
+		FCB $10		;Dark blue
+		FCB $11		;Dark purple
+		FCB $14		;Dark cyan
+		FCB $05		;Dark yellow
 		FCB $15		;Dark gray
 		FCB $00		;Black
 			
-	gfx_test2_ball_colors:
+	gfx_test3_ball_colors:
 		FCB $03		;Red
 		FCB $0C		;Green
 		FCB $30		;Blue
@@ -476,7 +565,7 @@
 		FCB $3F		;White
 		FCB $2A		;Light gray
 			
-	gfx_test2_ball_image:
+	gfx_test3_ball_image:
 		FCB	$00, $00, $FF, $FF,$FF, $FF, $FF, $00, $00
 		FCB $00, $FF, $01, $01,$01, $01, $01, $FF, $00
 		FCB $FF, $01, $01, $01,$01, $FF, $01, $01, $FF
@@ -486,46 +575,4 @@
 		FCB $FF, $01, $01, $01,$01, $01, $01, $01, $FF
 		FCB $00, $FF, $01, $01,$01, $01, $01, $FF, $00	
 		FCB	$00, $00, $FF, $FF,$FF, $FF, $FF, $00, $00	
-		
-	;Works but looks strange - balls meet on horizontal line
-	;gfx_test2_ball_start_X:
-	;	FCB 0
-	;	FCB 14
-	;	FCB 28
-	;	FCB 42
-	;	FCB 54
-	;	FCB 42
-	;	FCB 28
-	;	FCB 14
-	;	
-	;gfx_test2_ball_start_Y:
-	;	FCB 28
-	;	FCB 14
-	;	FCB 0
-	;	FCB 14
-	;	FCB 28
-	;	FCB 40
-	;	FCB 54
-	;	FCB 42
-	
-	gfx_test2_ball_start_X:
-		FCB 0
-		FCB 4
-		FCB 8
-		FCB 12
-		FCB 16
-		FCB 20
-		FCB 24
-		FCB 28
-		
-	gfx_test2_ball_start_Y:
-		FCB 28
-		FCB 24
-		FCB 20
-		FCB 16
-		FCB 12
-		FCB 8
-		FCB 4
-		FCB 0
-		
 		
