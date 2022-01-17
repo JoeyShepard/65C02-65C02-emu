@@ -1122,12 +1122,6 @@
 				JMP .blink
 			.emulate:
 			
-			;	;Debug
-			;	LDA global_emu_level
-			;	STA DEBUG_DEC
-			;	LDA #' '
-			;	STA DEBUG
-			
 			;Set up stacks
 			LDA global_emu_level
 			BNE .not_zero
@@ -1167,13 +1161,7 @@
 			ADC #EMULATOR_STACK_SIZE
 			STA global_temp_SP
 			INC global_emu_level
-		
-			;	;Debug
-			;	LDA global_emu_level
-			;	STA DEBUG_DEC
-			;	LDA #10
-			;	STA DEBUG
-		
+
 			;Jump into emulation and don't return
 			NEXT_MACRO
 		

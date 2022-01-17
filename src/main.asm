@@ -4,9 +4,6 @@
 	; - best idea is MIPS generating assembly and optimizing out flags
 	; - not sure how to nest, but generating STC is type of JIT
 	; - also self mod in ram
-	;-Example - 4 or 8 in one screen to demonstrate
-	;-Add STP and WAI
-	;
 	
 	;Include macros first so available to all files
 	include macros.asm
