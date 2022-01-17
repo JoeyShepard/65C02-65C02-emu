@@ -682,7 +682,7 @@
 		ADC origin_hi,X
 		STA ball_ptr_hi,X
 		
-		;Draw background		
+		;Draw background
 		LDA #FRAME_HEIGHT
 		STA temp1,X
 		LDA origin_hi,X
@@ -1182,9 +1182,7 @@
 			LDA #WHITE
 			LDY #DARK_GRAY
 			.main:
-				;halt
 				STA CENTER_SCREEN
-				;halt
 				STY CENTER_SCREEN
 				JMP .main
 			
