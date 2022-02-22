@@ -121,6 +121,8 @@ BRANCH_MACRO MACRO
 OP_STEP MACRO op, stepname	
 
 	SWITCH "stepname"
+	CASE "AND_ZP"
+		AND (emu_ZP,X)
 	CASE "BBR_BB"
 		PC_NEXT
 		AND (emu_ZP,X)
@@ -312,6 +314,23 @@ OP_STEP MACRO op, stepname
 		LDA #$40
 	CASE "LDA_BIT7"
 		LDA #$80
+	CASE "LDA_BIT0_INV"
+		LDA #~$01
+	CASE "LDA_BIT1_INV"
+		LDA #~$02
+	CASE "LDA_BIT2_INV"
+		LDA #~$04
+	CASE "LDA_BIT3_INV"
+		LDA #~$08
+	CASE "LDA_BIT4_INV"
+		LDA #~$10
+	CASE "LDA_BIT5_INV"
+		LDA #~$20
+	CASE "LDA_BIT6_INV"
+		LDA #~$40
+	CASE "LDA_BIT7_INV"
+		;LDA #~$80
+		LDA #$7F
 	CASE "OP_F"
 		PLP
 		op
@@ -332,6 +351,8 @@ OP_STEP MACRO op, stepname
 		PLP
 		op (emu_ZP,X)
 		PHP
+	CASE "ORA_ZP"
+		ORA (emu_ZP,X)
 	CASE "PLA_PHA"
 		PLA
 		PHA

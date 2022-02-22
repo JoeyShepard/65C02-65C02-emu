@@ -80,7 +80,7 @@
 		;=======
 		
 		;BRK	;Tested - works
-		
+				
 		CLC
 		SEC
 		
@@ -375,6 +375,29 @@
 		CMP $F0
 		CPX $F1
 		CPY $F2
+		
+		halt
+		
+		LDA #$FF
+		STA $F0
+		RMB0 $F0
+		RMB1 $F0
+		RMB2 $F0
+		RMB3 $F0
+		RMB4 $F0
+		RMB5 $F0
+		RMB6 $F0
+		RMB7 $F0
+		
+		STZ $F0
+		SMB0 $F0
+		SMB1 $F0
+		SMB2 $F0
+		SMB3 $F0
+		SMB4 $F0
+		SMB5 $F0
+		SMB6 $F0
+		SMB7 $F0
 		
 		
 		

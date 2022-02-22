@@ -74,7 +74,7 @@
 	STA RAM_BANK3
 	
 	;Tests for all emulated instructions
-	;JMP test_prog
+	JMP test_prog
 	
 	;Graphical test patterns to verify emulator
 	;JMP gfx_test1
