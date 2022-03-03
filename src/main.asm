@@ -1,9 +1,3 @@
-	;TODO
-	;-6502 emu could understand recoded instructions leaving out flags
-	; - actually, wouldnt make sense unless 6502 side generates too
-	; - best idea is MIPS generating assembly and optimizing out flags
-	; - not sure how to nest, but generating STC is type of JIT
-	; - also self mod in ram
 	
 	;Include macros first so available to all files
 	include macros.asm

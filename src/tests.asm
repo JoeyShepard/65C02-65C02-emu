@@ -227,14 +227,16 @@
 		ADC #$25	;$15 ADC $25 = $3A
 		SEC
 		SBC #$1B	;$3A SBC $1B = $1F
-		
+			
 		;LDA (emu_PC,X)
 		;STA emu_temp,X
 		;LDA emu_A,X
 		;PLP
 		;BIT emu_temp,X
 		;PHP
-		BIT #$E1	;$1E BIT $E1 = $1E (Z,N,V set)
+		LDA #$FE
+		BIT #1
+		BIT #2
 		
 		;LDA emu_?,X
 		;PLP

@@ -135,6 +135,19 @@ OP_STEP MACRO op, stepname
 		BEQ .skip
 			BRANCH_MACRO
 		.skip:
+	CASE "BIT_IMMED_F"
+		AND (emu_PC,X)
+		BEQ .skip
+			;Clear Z flag
+			PLA
+			AND #$FD 
+			BRA .done
+		.skip:
+			;Set Z flag
+			PLA
+			ORA #2
+		.done:
+		PHA
 	CASE "BIT_TEMP_F"
 		PLP
 		BIT emu_temp,X

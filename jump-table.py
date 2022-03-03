@@ -113,7 +113,7 @@ OP_INFO = {
 134:("STX","ZP","LDA_X","STA_ZP","",""),
 135:("SMB0","ZP","LDA_BIT0","ORA_ZP","STA_ZP",""),
 136:("DEY","IMP","DEY_F","","",""),
-137:("BIT","IMMED","LDA_IMMED","STA_TEMP","LDA_A","BIT_TEMP_F"),
+137:("BIT","IMMED","LDA_A","BIT_IMMED_F","",""),
 138:("TXA","IMP","LDA_X_F","STA_A","",""),
 140:("STY","ABS","LDA_Y","STA_ADDRESS","",""),
 141:("STA","ABS","LDA_A","STA_ADDRESS","",""),
