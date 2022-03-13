@@ -1,5 +1,7 @@
 import sys
 
+label_list=[]
+label_address=""
 fr=open(sys.argv[1],"r")
 fw=open(sys.argv[2],"w")
 for line in fr:
@@ -13,6 +15,10 @@ for line in fr:
         #No address means continued line or output from console, so ignore
         elif (len(address)!=0)&(len(line)>18):
             address=("0000"+address)[-4:]
+            #Keep track of labels so duplicate label not added for line
+            if address!=label_address:
+                label_address=address
+                label_list=""
             #Valid lines have colon. Check should not be necessary but just in case
             if line[18]==":":
                 #Check if any bytes were laid down
@@ -36,7 +42,10 @@ for line in fr:
                                 if ((tempstr[0]<"0")|(tempstr[0]>"9")):
                                     #Must contain only valid characters
                                     if (tempstr.isalnum()):
-                                        addline=True
+                                        #Don't output label again if already output for this line
+                                        if tempstr not in label_list:
+                                            label_list+=tempstr
+                                            addline=True
                             
     if (addline):
         fw.write(line+"\n")

@@ -378,8 +378,6 @@
 		CPX $F1
 		CPY $F2
 		
-		halt
-		
 		LDA #$FF
 		STA $F0
 		RMB0 $F0

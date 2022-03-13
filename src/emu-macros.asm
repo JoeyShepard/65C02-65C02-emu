@@ -418,41 +418,73 @@ OP_STEP MACRO op, stepname
 		STA (emu_ZP,X)
 	CASE "TRB_ABS"
 		LDA (emu_address,X)
-		STA emu_temp,X
+		AND emu_A,X
+		BEQ .skip
+			;Clear Z flag
+			PLA
+			AND #$FD
+			BRA .done
+		.skip:
+			;Set Z flag
+			PLA
+			ORA #2
+		.done:
+		PHA
 		LDA emu_A,X
-		PLP
-		BIT emu_temp,X
-		PHP
 		EOR #$FF
-		AND emu_temp,X
+		AND (emu_address,X)
 		STA (emu_address,X)
 	CASE "TRB_ZP"
 		LDA (emu_ZP,X)
-		STA emu_temp,X
+		AND emu_A,X
+		BEQ .skip
+			;Clear Z flag
+			PLA
+			AND #$FD
+			BRA .done
+		.skip:
+			;Set Z flag
+			PLA
+			ORA #2
+		.done:
+		PHA
 		LDA emu_A,X
-		PLP
-		BIT emu_temp,X
-		PHP
 		EOR #$FF
-		AND emu_temp,X
+		AND (emu_ZP,X)
 		STA (emu_ZP,X)
 	CASE "TSB_ABS"
 		LDA (emu_address,X)
-		STA emu_temp,X
+		AND emu_A,X
+		BEQ .skip
+			;Clear Z flag
+			PLA
+			AND #$FD
+			BRA .done
+		.skip:
+			;Set Z flag
+			PLA
+			ORA #2
+		.done:
+		PHA
 		LDA emu_A,X
-		PLP
-		BIT emu_temp,X
-		PHP
-		ORA emu_temp,X
+		ORA (emu_address,X)
 		STA (emu_address,X)
 	CASE "TSB_ZP"
 		LDA (emu_ZP,X)
-		STA emu_temp,X
+		AND emu_A,X
+		BEQ .skip
+			;Clear Z flag
+			PLA
+			AND #$FD
+			BRA .done
+		.skip:
+			;Set Z flag
+			PLA
+			ORA #2
+		.done:
+		PHA
 		LDA emu_A,X
-		PLP
-		BIT emu_temp,X
-		PHP
-		ORA emu_temp,X
+		ORA (emu_ZP,X)
 		STA (emu_ZP,X)
 	CASE "UNIMPLEMENTED"
 		;Instruction not implemented - loop forever
